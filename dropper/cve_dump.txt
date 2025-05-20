@@ -1,3 +1,12 @@
+CVE              Published    Last Update  Max CVSS Base Score  EPSS Score  CISA KEV Added  Public Exploit Exists  Summary
+CVE-2021-34527   2021-07-01   2024-01-15   8.8                  11.5%       Yes            Yes                   Windows Print Spooler Remote Code Execution and Privilege Escalation vulnerability known as "PrintNightmare". Allows remote attackers to execute arbitrary code with SYSTEM privileges.
+CVE-2021-34481   2021-07-06   2023-12-20   7.8                  2.5%        No             Yes                   Windows Print Spooler Elevation of Privilege vulnerability, allowing local attackers to escalate privileges via improper handling of privileged file operations.
+CVE-2022-23277   2022-07-12   2024-02-10   7.8                  1.2%        Yes            Yes                   Windows Print Spooler Elevation of Privilege via improper access control on print spooler files and drivers.
+CVE-2022-33879   2022-12-13   2025-03-15   7.8                  0.5%        No             No                    Windows Print Spooler Local Privilege Escalation due to race condition in spooler service.
+CVE-2023-24804   2023-04-11   2025-01-20   7.8                  0.03%       No             No                    Windows Print Spooler Elevation of Privilege due to improper validation of spooler driver installation parameters.
+CVE-2024-25032   2024-02-15   2025-04-05   7.8                  0.01%       No             No                    Windows Print Spooler Vulnerability allowing potential local privilege escalation due to improper access control on spooler components.
+
+
 CVE	Published	Last Update	Max CVSS Base Score	EPSS Score	CISA KEV Added	Public Exploit Exists	Summary
 CVE-2025-0065	2025-01-28	2025-01-28	7.8	0.09%			Improper Neutralization of Argument Delimiters in the TeamViewer_service.exe component of TeamViewer Clients prior version 15.62 for Windows allows an attacker with local unprivileged access on a Windows system to elevate privileges via argument injection.
 CVE-2024-7481	2024-09-25	2024-09-26	8.8	0.07%			Improper verification of cryptographic signature during installation of a Printer driver via the TeamViewer_service.exe component of TeamViewer Remote Clients prior version 15.58.4 for Windows allows an attacker with local unprivileged access on a Windows system to elevate their privileges and install drivers.
