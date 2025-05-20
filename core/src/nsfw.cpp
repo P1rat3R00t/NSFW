@@ -1,3 +1,6 @@
+// rundll32.exe nsfw.dll,EntryPoint
+
+
 #include <windows.h>
 #include <ntifs.h>
 #include <wdm.h>
