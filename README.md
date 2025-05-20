@@ -104,6 +104,11 @@ cmd.exe /c "attrib +h +s C:\Windows\Temp\*"
 
 ---
 
+# TeamViewer as a RAT: Summary
+
+TeamViewer, a popular remote desktop application, can be misused as a Remote Access Trojan (RAT) primarily by exploiting weak configurations, credential theft, or known vulnerabilities in its software versions. Attackers who gain access to valid credentials or exploit unpatched CVEs (such as DLL injection or privilege escalation flaws) can silently control a target system remotely, execute arbitrary commands, and move laterally within networks. This misuse leverages TeamViewer’s legitimate remote control capabilities to maintain persistent, stealthy access without triggering typical malware defenses. However, turning TeamViewer into a RAT requires either compromising authentication or exploiting vulnerabilities in older or unpatched versions, highlighting the importance of strong credential management and timely software patching.
+
+
 ## 🧭 Additional Red Team Resources
 
 * 🛠️ [LOLOL Farm – LOLBin Playground](https://lolol.farm/)
