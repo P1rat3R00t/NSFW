@@ -9,7 +9,8 @@ All content is intended **solely for educational, academic, and controlled resea
 
 > **🚫 Do not deploy or reproduce any of the included techniques on unauthorized or production systems. Misuse may violate legal, ethical, and professional standards.**
 
-![Screenshot 2025-03-06 125420](https://github.com/user-attachments/assets/e2ed9e6d-a4bf-422d-8536-118836ae1f24)
+![Screenshot 2025-05-21 001453](https://github.com/user-attachments/assets/f93a65bd-d000-41f0-a941-631f047417e4)
+
 
 ---
 
