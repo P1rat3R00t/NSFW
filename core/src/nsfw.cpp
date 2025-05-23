@@ -2,18 +2,29 @@
 
 
 #include <windows.h>
-#include <ntifs.h>
-#include <wdm.h>
+//#include <ntifs.h>
+//#include <wdm.h>
 #include <intrin.h>
-
-#include "malapi/mem.h"
-#include "malapi/crypto.h"
-#include "malapi/io.h"
-
+#include "../../DiskCryptor/src/crypto/aes.h"
+//#include "malapi/mem.h"
+//#include "malapi/crypto.h"
+//#include "malapi/io.h"
+#include "poly/aes.h"
+// Then use poly's AES API as documented in their repo
 #include <cstdint>
 #include <vector>
 #include <random>
+extern "C" {
+#include "extern/crypto/aes.h"
+}
 
+// Example: Initialization and encryption
+AES_CONTEXT ctx;
+uint8_t key[32] = { /* your AES-256 key */ };
+uint8_t data[16] = { /* 16 bytes to encrypt */ };
+
+aes_setkey(&ctx, key, 32);  // 32 for AES-256
+aes_encrypt(&ctx, data, data);  // In-place encryption
 // Forward declare polymorphic function type for encryption passes
 using WipePassFunc = int (*)(void* hook, uint8_t* buffer, int size, uint64_t offset, const uint8_t* key, const uint8_t* iv);
 
