@@ -1,0 +1,19 @@
+##
+# Local Rules for Purple Team Lab - SMB and DLL Execution Detection
+##
+
+# Alert on SMB traffic that contains suspicious .dll or .jpg files (encoded payloads)
+alert tcp any any -> any 445 (msg:"[PT-Lab] SMB file transfer possible malicious DLL or JPG"; flow:established,to_server; content:".dll"; nocase; content:".jpg"; nocase; distance:0; classtype:trojan-activity; sid:1000001; rev:2;)
+
+# Alert on traffic containing 'rundll32.exe' indicating potential remote DLL execution
+alert tcp any any -> any any (msg:"[PT-Lab] Possible rundll32.exe remote execution attempt"; flow:established; content:"rundll32.exe"; nocase; classtype:policy-violation; sid:1000002; rev:3;)
+
+# Alert on SMB exec command with embedded PowerShell command usage
+alert tcp any any -> any 445 (msg:"[PT-Lab] SMB exec with PowerShell usage"; flow:established,to_server; content:"powershell"; nocase; classtype:attempted-admin; sid:1000003; rev:2;)
+
+# Alert on SMB exec command with embedded cmd.exe usage
+alert tcp any any -> any 445 (msg:"[PT-Lab] SMB exec with cmd.exe usage"; flow:established,to_server; content:"cmd.exe"; nocase; classtype:attempted-admin; sid:1000004; rev:2;)
+
+# Alert on SMB connection that triggers suspicious file rename or deletion (common in wiper activity)
+alert tcp any any -> any 445 (msg:"[PT-Lab] SMB suspicious file rename or delete"; flow:established,to_server; content:"rename"; nocase; classtype:attempted-admin; sid:1000005; rev:1;)
+alert tcp any any -> any 445 (msg:"[PT-Lab] SMB suspicious file delete"; flow:established,to_server; content:"delete"; nocase; classtype:attempted-admin; sid:1000006; rev:1;)
