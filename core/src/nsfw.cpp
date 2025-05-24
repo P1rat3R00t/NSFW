@@ -1,13 +1,17 @@
-#include <windows.h>
+﻿// mal_dll.cpp : Defines the exported functions for the DLL application.
+//
+#include "mal_dll.h"
 
-BOOL __stdcall DllMain(HINSTANCE ModuleHandle, DWORD Reason, LPVOID Reserved) { 
+// did not play in function, so it would be hard to reverse obfuscated API call
+const char* szMessage = "Beware";
+const char* szCaption = "Take action!";
+INT(WINAPI *fFuncProc)(HWND, LPCSTR, LPCSTR, UINT);
 
-    switch (Reason) {
-        case DLL_PROCESS_ATTACH:
-            MessageBoxW(NULL, L"WHO GOES THERE", L"KAW KAW KAW", MB_ICONEXCLAMATION);
-            break;
-    }
-
-    return TRUE;
-
+void showMessage()
+{
+	fFuncProc = (INT(__stdcall *)(HWND, LPCSTR, LPCSTR, UINT))GetProcAddress(
+		LoadLibrary("user32.dll"), 
+		"MessageBoxA"
+	);
+	fFuncProc(0, szMessage, szCaption, 0);
 }
