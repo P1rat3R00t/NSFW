@@ -102,7 +102,28 @@ cmd.exe /c "attrib +h +s C:\Windows\Temp\*"
 
 </details>
 
+
+### 🔓 **1. CVE-2021-34527 — "PrintNightmare"**
+
+* **Name**: PrintNightmare
+* **CVE**: [CVE-2021-34527](https://nvd.nist.gov/vuln/detail/CVE-2021-34527)
+* **Type**: Remote Code Execution + Local Privilege Escalation
+* **Vector**: Malicious printer driver install via SMB or RDP with Print Spooler enabled
+* **Exploit Chain**: Gain RCE as SYSTEM remotely via crafted printer driver + DLL
+* **Status**: Patched, but **many misconfigured systems remain vulnerable**
+* **Best Use**: Initial Access + Lateral Movement (wormable)
+
 ---
+
+### 🧬 **2. CVE-2022-21999 — "SpoolFool"**
+
+* **Name**: SpoolFool
+* **CVE**: [CVE-2022-21999](https://nvd.nist.gov/vuln/detail/CVE-2022-21999)
+* **Type**: Local Privilege Escalation (to SYSTEM)
+* **Vector**: Arbitrary file write via Print Spooler registry misconfiguration (`HKLM\SYSTEM\CurrentControlSet\Control\Print\Printers\*`)
+* **Exploit Chain**: Inject malicious DLL via PrintNotify callback registry, then start spoolsv
+* **Status**: Still viable against many targets, especially **Windows Home editions**
+* **Best Use**: Post-RCE PrivEsc (e.g. after phishing, file drop, or PrintNightmare)
 
 # TeamViewer as a RAT: Summary
 
