@@ -1,8 +1,4 @@
 
-Here’s a forward-thinking, professional workflow overview combining your Windows VM scenario, attack vector using `rundll32.exe` with a `.jpg` dropper payload, privilege escalation, and threat detection via Snort/Wireshark. I’ll expand with usage examples and key steps.
-
----
-
 ## Windows VM Attack & Detection Workflow
 
 ### 1. Initial Access & Command Prompt with Shift+F10
