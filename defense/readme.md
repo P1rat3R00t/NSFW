@@ -1,128 +1,194 @@
+Understood. Here's a **full, ready-to-use markdown** with embedded sample configurations for Snort, Sysmon, and a basic Python alert parser starter script. This is designed for immediate deployment and testing in your purple team lab environment.
 
+---
 
-# Simplified Purple Team Lab Setup: Win11 + Kali VMs on VirtualBox
+````markdown
+# Purple Team Lab Setup: Windows 11 + Kali VMs on VirtualBox
 
 ---
 
 ## 1. Network Isolation Setup
 
-* **Create an internal VirtualBox network** (e.g., `intnet0`)
+- Use VirtualBox **Internal Network** adapter named `intnet0`
+- Assign static IPs:
 
-  * Both Win11 and Kali VMs attached to this **internal-only** network.
-  * No internet or host OS access; complete isolation for safe testing.
-
-* **IP Configuration:**
-
-  * Assign static IPs:
-
-    * Win11: `192.168.56.101`
-    * Kali: `192.168.56.102`
+| VM        | IP Address      | Subnet Mask     |
+|-----------|-----------------|-----------------|
+| Windows 11| 192.168.56.101  | 255.255.255.0   |
+| Kali Linux| 192.168.56.102  | 255.255.255.0   |
 
 ---
 
-## 2. File Sharing Setup (Net Share)
+## 2. Windows 11 SMB Share Setup
 
-* On **Windows 11 VM**, create a network share folder:
-
-  * Share a directory where you’ll drop your `.jpg`-encoded fileless wiper DLL.
-  * Ensure SMB file sharing enabled in Windows Features.
-  * Permissions: Allow Kali VM read/write access.
-
-* On **Kali VM**, mount the Windows share via SMB:
-
-  ```
-  sudo mount -t cifs //192.168.56.101/sharename /mnt/winshare -o username=winuser,password=winpass
-  ```
+- Create folder `C:\PayloadShare`
+- Share it as `PayloadShare` with Read/Write permissions
+- Ensure SMB file sharing enabled and firewall allows port 445
+- Use Windows credentials for access
 
 ---
 
-## 3. Snort Deployment on Kali
+## 3. Kali SMB Mount
 
-* Install Snort on Kali:
-
-  ```
-  sudo apt update && sudo apt install snort
-  ```
-
-* Configure Snort to monitor the internal interface connected to `intnet0`.
-
-* Use custom rules targeting SMB file transfers, `rundll32.exe` execution signatures, and network PowerShell commands.
-
-* Start Snort in IDS mode on the internal interface:
-
-  ```
-  sudo snort -A console -q -c /etc/snort/snort.conf -i eth0
-  ```
+```bash
+sudo apt install cifs-utils
+sudo mount -t cifs //192.168.56.101/PayloadShare /mnt/winshare -o username=winuser,password=winpass,vers=3.0
+````
 
 ---
 
-## 4. Wireshark Usage
+## 4. Snort IDS Setup on Kali
 
-* Run Wireshark on Kali VM to capture all network traffic on the internal interface.
+### Install Snort
 
-* Use display filters for SMB and suspicious traffic:
+```bash
+sudo apt update
+sudo apt install snort
+```
 
-  * `smb2` — SMBv2 protocol
-  * `frame contains "rundll32"` — Detect payload triggers
-  * `tcp.port == 445` — SMB traffic port filter
+### Configuration: `/etc/snort/snort.conf`
 
-* Analyze suspicious packets and export PCAPs for forensic review.
+Set HOME\_NET:
 
----
+```conf
+ipvar HOME_NET 192.168.56.0/24
+```
 
-## 5. Windows 11 Sysmon Configuration
+Include local rules:
 
-* Deploy Sysmon on Win11 with a config tuned to detect your fileless wiper tactics:
+```conf
+include $RULE_PATH/local.rules
+```
 
-  * Monitor process creations for `rundll32.exe`
-  * Network connections
-  * Event log clearing or registry changes
+### Local Rules File: `/etc/snort/rules/local.rules`
 
-* Forward Sysmon logs locally or via Winlogbeat for offline analysis.
+```snort
+alert tcp 192.168.56.0/24 any -> 192.168.56.0/24 445 (msg:"SMB file transfer with DLL/JPG detected"; flow:established,to_server; content:".dll"; nocase; content:".jpg"; nocase; classtype:trojan-activity; sid:1000001; rev:3;)
+alert tcp any any -> any any (msg:"Potential rundll32.exe remote execution"; flow:established; content:"rundll32.exe"; nocase; classtype:policy-violation; sid:1000002; rev:4;)
+alert tcp any any -> any 445 (msg:"PowerShell command over SMB"; flow:established,to_server; content:"powershell"; nocase; classtype:attempted-admin; sid:1000003; rev:3;)
+```
 
----
+### Running Snort
 
-## 6. Testing Workflow
+```bash
+sudo snort -A console -q -c /etc/snort/snort.conf -i eth0
+```
 
-1. **Deploy your `.jpg` file with encoded DLL payload** on the Windows share.
-
-2. From Kali, trigger remote execution via SMB or a remote command invoking `rundll32.exe` on the target file in the share.
-
-3. **Snort and Wireshark** monitor network traffic, detect the SMB transfer and exec attempt.
-
-4. **Sysmon** logs process creation and suspicious activity on Win11.
-
-5. Analyze Snort alerts, Wireshark captures, and Sysmon logs for correlations.
-
-6. Reference MITRE ATT\&CK techniques throughout:
-
-| Technique                             | Example                                          |
-| ------------------------------------- | ------------------------------------------------ |
-| T1021.002 (SMB)                       | Executing payload remotely via SMB share         |
-| T1218 (Signed Binary Proxy Execution) | Using rundll32.exe to launch DLL payload         |
-| T1059.001 (PowerShell)                | Possible PowerShell encoded commands (if used)   |
-| T1562.001 (Impair Defenses)           | Event log clearing or tampering by wiper payload |
+Replace `eth0` with your Kali internal network interface.
 
 ---
 
-## 7. Optional Enhancements
+## 5. Wireshark Usage on Kali
 
-* Use **Elastic Stack** on Kali for centralized logging and correlation (optional).
+* Capture traffic on internal interface
+* Use filters like:
 
-* Automate Snort alert parsing with a Python script for alert timelines.
-
-* Apply network segmentation and VLAN tagging in VirtualBox for multi-subnet tests.
+```
+smb2
+frame contains "rundll32"
+tcp.port == 445
+data-text-lines contains "powershell"
+```
 
 ---
 
-# Summary
+## 6. Sysmon Setup on Windows 11
 
-| Component                   | Role                                 | Details                           |
-| --------------------------- | ------------------------------------ | --------------------------------- |
-| VirtualBox internal network | Isolated test network                | Prevents external interference    |
-| Windows 11 VM               | Target of fileless wiper via SMB     | Shared folder for payload drop    |
-| Kali VM                     | Attacker & sensor (Snort, Wireshark) | Monitoring and launching attack   |
-| Snort                       | Network IDS on Kali                  | Detects SMB file transfers & exec |
-| Wireshark                   | Packet capture on Kali               | Deep packet inspection            |
-| Sysmon                      | Endpoint detection on Win11          | Process, network, log monitoring  |
+### Download and install:
+
+[https://docs.microsoft.com/en-us/sysinternals/downloads/sysmon](https://docs.microsoft.com/en-us/sysinternals/downloads/sysmon)
+
+### Example `sysmon-config.xml`
+
+```xml
+<Sysmon schemaversion="4.50">
+  <EventFiltering>
+    <ProcessCreate onmatch="include">
+      <Image condition="contains">rundll32.exe</Image>
+      <Image condition="contains">powershell.exe</Image>
+      <Image condition="contains">cmd.exe</Image>
+    </ProcessCreate>
+    <NetworkConnect onmatch="include"/>
+    <FileCreate onmatch="include">
+      <TargetFilename condition="contains">.dll</TargetFilename>
+      <TargetFilename condition="contains">.jpg</TargetFilename>
+    </FileCreate>
+    <EventLog onmatch="include">
+      <EventID>1102</EventID> <!-- Event Log Clear -->
+    </EventLog>
+    <RegistryEvent onmatch="include"/>
+  </EventFiltering>
+</Sysmon>
+```
+
+### Install Sysmon with config
+
+```powershell
+sysmon -accepteula -i sysmon-config.xml
+```
+
+---
+
+## 7. Testing Workflow
+
+1. Encode fileless wiper DLL as `.jpg`, drop into `PayloadShare`
+2. Mount share on Kali, access file
+3. Trigger execution remotely via SMB exec tools or PSExec variants:
+
+```bash
+smbexec.py -target 192.168.56.101 -command "rundll32.exe C:\\PayloadShare\\payload.jpg,EntryPoint"
+```
+
+4. Monitor alerts on Snort console
+5. Inspect network traffic via Wireshark
+6. Review Sysmon logs for suspicious activity
+
+---
+
+## 8. MITRE ATT\&CK Techniques Reference
+
+| Technique ID | Technique Name                |
+| ------------ | ----------------------------- |
+| T1021.002    | SMB Remote Execution          |
+| T1218        | Signed Binary Proxy Execution |
+| T1059.001    | PowerShell                    |
+| T1562.001    | Impair Defenses               |
+
+---
+
+## 9. Python Snort Alert Parser (Starter)
+
+Save as `snort_alert_parser.py`
+
+```python
+import re
+
+def parse_snort_alerts(alert_file):
+    alerts = []
+    with open(alert_file, 'r') as f:
+        for line in f:
+            # Example pattern to extract alert message and sid
+            match = re.search(r'\[.*\] \[.*\] \[.*\] \[([^\]]+)\] (.*)', line)
+            if match:
+                sid = match.group(1)
+                msg = match.group(2)
+                alerts.append({'sid': sid, 'msg': msg})
+    return alerts
+
+if __name__ == "__main__":
+    alerts = parse_snort_alerts('/var/log/snort/alert')
+    for alert in alerts:
+        print(f"SID: {alert['sid']}, Message: {alert['msg']}")
+```
+
+---
+
+## 10. Useful Links
+
+* VirtualBox Networking: [https://www.virtualbox.org/manual/ch06.html#network\_internal](https://www.virtualbox.org/manual/ch06.html#network_internal)
+* SMB File Sharing Windows: [https://docs.microsoft.com/en-us/windows-server/storage/file-server/file-server-overview](https://docs.microsoft.com/en-us/windows-server/storage/file-server/file-server-overview)
+* Snort Official: [https://snort.org/](https://snort.org/)
+* Sysmon Download & Docs: [https://docs.microsoft.com/en-us/sysinternals/downloads/sysmon](https://docs.microsoft.com/en-us/sysinternals/downloads/sysmon)
+* MITRE ATT\&CK Framework: [https://attack.mitre.org/](https://attack.mitre.org/)
+
 
