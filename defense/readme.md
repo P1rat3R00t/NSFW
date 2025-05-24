@@ -1,8 +1,4 @@
-Understood. Here's a **full, ready-to-use markdown** with embedded sample configurations for Snort, Sysmon, and a basic Python alert parser starter script. This is designed for immediate deployment and testing in your purple team lab environment.
 
----
-
-````markdown
 # Purple Team Lab Setup: Windows 11 + Kali VMs on VirtualBox
 
 ---
