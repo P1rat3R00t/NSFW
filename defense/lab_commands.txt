@@ -1,0 +1,2 @@
+
+sysmon -c sysmon-config.xml
