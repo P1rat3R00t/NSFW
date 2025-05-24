@@ -1,3 +1,0 @@
-;!@Install@!UTF-8!
-RunProgram="launch.bat"
-;!@InstallEnd@!
