@@ -1,0 +1,43 @@
+<Sysmon schemaversion="4.50">
+  <EventFiltering>
+    
+    <!-- Process Creation: Focus on rundll32.exe and cmd/powershell -->
+    <ProcessCreate onmatch="include">
+      <Image condition="contains">rundll32.exe</Image>
+      <Image condition="contains">powershell.exe</Image>
+      <Image condition="contains">cmd.exe</Image>
+    </ProcessCreate>
+
+    <!-- Network Connection: Log all outbound and inbound -->
+    <NetworkConnect onmatch="include" />
+
+    <!-- File Create Time: Detect creation/modification of suspicious file types -->
+    <FileCreateTime onmatch="include">
+      <TargetFilename condition="end with">.dll</TargetFilename>
+      <TargetFilename condition="end with">.jpg</TargetFilename>
+      <TargetFilename condition="end with">.exe</TargetFilename>
+    </FileCreateTime>
+
+    <!-- File Delete: Detect deletion of files -->
+    <FileDelete onmatch="include" />
+
+    <!-- Event Log Clearing -->
+    <EventLogCleared onmatch="include" />
+
+    <!-- Registry Key Monitoring: Focus on autoruns and persistence mechanisms -->
+    <RegistryEvent onmatch="include">
+      <TargetObject condition="contains">\Software\Microsoft\Windows\CurrentVersion\Run</TargetObject>
+      <TargetObject condition="contains">\Software\Microsoft\Windows\CurrentVersion\RunOnce</TargetObject>
+      <TargetObject condition="contains">\System\CurrentControlSet\Services</TargetObject>
+    </RegistryEvent>
+
+    <!-- Image Loaded: Monitor DLL loads to detect reflective DLL injection -->
+    <ImageLoaded onmatch="include">
+      <Image condition="end with">.dll</Image>
+    </ImageLoaded>
+
+    <!-- Driver Loaded: Detect kernel mode drivers being loaded -->
+    <DriverLoaded onmatch="include" />
+
+  </EventFiltering>
+</Sysmon>
