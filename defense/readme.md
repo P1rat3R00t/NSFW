@@ -1,6 +1,4 @@
-Here is the full shared **Purple Team Lab Setup: Windows 11 + Kali VMs on VirtualBox**, formatted for easy use and documentation:
 
----
 
 # 🟣 Purple Team Lab Setup: Windows 11 + Kali VMs on VirtualBox
 
