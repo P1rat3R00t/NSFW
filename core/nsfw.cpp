@@ -144,6 +144,12 @@ extern "C" __declspec(dllexport) BOOL WipeDataExtended(const wchar_t* targetPath
     return TRUE;
 }
 
+public class DataWiper {
+    public static bool WipeData(string targetPath, int passes) { ... }
+}
+
+
+
 // --- DLL Entry Point --- //
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
     return TRUE;
