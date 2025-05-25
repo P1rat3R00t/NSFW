@@ -1,4 +1,4 @@
-// IntegratedReflectiveWiper.cpp
+
 // Fully fileless secure data wiper with manual DLL reflective loader internals (red team use only)
 
 #include <windows.h>
