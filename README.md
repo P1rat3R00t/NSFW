@@ -1,6 +1,7 @@
 
-
 # Overview
+
+This repository P1rat3R00t/NSFW is a cybersecurity research project focusing on advanced threat techniques, particularly fileless malware and the exploitation of Living-Off-the-Land Binaries (LOLBins). It is intended strictly for educational and controlled research purposes.
 
 ## ⚠️ Advisory Warning: Educational Use Only
 
