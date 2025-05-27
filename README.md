@@ -152,5 +152,3 @@ This repository is for cybersecurity researchers, malware analysts, and red team
 **Do not use for malicious purposes or outside legal boundaries. Always comply with your country’s laws and organizational policies.**
 
 
-
-Let me know if you'd like further customization or want to add badges, contact info, or more usage details!
