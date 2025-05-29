@@ -1,3 +1,6 @@
+// donut -f 1 -a 2 your.dll
+
+
 #include <Windows.h>
 #include <lm.h>
 
