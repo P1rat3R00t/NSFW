@@ -7,6 +7,14 @@ function Invoke-Nightmare
         .DESCRIPTION
         This is a non-functional stub of the PrintNightmare exploit script.
         All implementation details and payloads have been removed.
+
+    for more info:
+    Exploits CVE-2021-1675 (PrintNightmare)
+
+        Authors:
+            Caleb Stewart - https://github.com/calebstewart
+            John Hammond - https://github.com/JohnHammond
+        URL: https://github.com/calebstewart/CVE-2021-1675
     #>
     param (
         [string]$DriverName = "Totally Not Malicious",
