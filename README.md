@@ -16,7 +16,7 @@ NSFW (Net Sharing Fileless Wiperware) is a Windows focused malware dev:
 
 
 
-This toolkit helps simulate a realistic adversary kill chain using MITRE ATT&CK techniques, entirely fileless and stealthy in nature.
+This repo helps simulate a realistic adversary kill chain using MITRE ATT&CK techniques, entirely fileless and stealthy in nature.
 
 ---
 
