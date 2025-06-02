@@ -70,6 +70,15 @@ Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "ra
 
 ---
 
+## Print Spooler CVEs:
+
+[SysNightmare](https://github.com/GossiTheDog/SystemNightmare)
+[PrintSpoofer](https://github.com/itm4n/PrintSpoofer/tree/master)
+[PrintSpoofer 2](https://github.com/dievus/printspoofer)
+[HiveNightmare](https://github.com/GossiTheDog/HiveNightmare)
+
+
+
 ## ⚖️ Legal & Ethical Advisory
 
 > 📢 **Important Notice:**
