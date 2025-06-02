@@ -1,0 +1,18 @@
+title: Fileless DLL Injection via Rundll32
+id: f002-polymorph-wiper
+status: experimental
+description: Detects polymorphic DLLs loaded filelessly via rundll32 from blob or memory
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image: 'C:\\Windows\\System32\\rundll32.exe'
+    CommandLine|contains:
+      - 'https://*.blob.core.windows.net/polymorph/'
+      - 'rundll32.exe javascript:'
+  condition: selection
+level: high
+tags:
+  - attack.execution
+  - attack.t1055.001
