@@ -12,6 +12,9 @@ NSFW (Net Sharing Fileless Wiperware) is a Windows focused malware dev:
 - **Fileless malware**, which operates solely in memory to bypass traditional AV/EDR.
 - **Polymorphic behavior**, making detection more difficult via mutation at runtime.
 - **LOLBins (Living Off the Land Binaries)**, trusted system binaries leveraged for offensive operations without dropping executables on disk.
+- **DiskCryptor-integrated crypto-viral payloads**, combining disk-level encryption (e.g., AES-XTS) with self-propagating ransomware capabilities, embedding cryptographic routines into reflective DLLs to execute volatile encryption logic, enforce ransom timers, or trigger destructive wipe logic if conditions are unmet—all while maintaining in-memory execution and no persistent footprint.
+
+
 
 This toolkit helps simulate a realistic adversary kill chain using MITRE ATT&CK techniques, entirely fileless and stealthy in nature.
 
