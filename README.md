@@ -1,5 +1,5 @@
 
-# NSFW: Fileless Polymorphic Hybrid Malware & LOLBins Research
+# NSFW: Fileless Hybrid Malware 
 
 ![Demo Screenshot](https://github.com/user-attachments/assets/f93a65bd-d000-41f0-a941-631f047417e4)
 
