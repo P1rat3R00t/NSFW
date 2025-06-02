@@ -1,19 +1,13 @@
 
 # NSFW: Fileless Polymorphic Hybrid Malware & LOLBins Research
 
-**Repository:** `P1rat3R00t/NSFW`  
-**Purpose:** This project is dedicated to cybersecurity research on fileless hybrid malware.
----
-
-## 📸 Demonstration Snapshot
-
 ![Demo Screenshot](https://github.com/user-attachments/assets/f93a65bd-d000-41f0-a941-631f047417e4)
 
 ---
 
 ## 🧠 Summary: What Is NSFW?
 
-NSFW (Not Safe For Workstation) is a red-team-focused framework for studying:
+NSFW (Net Sharing Fileless Wiperware) is a Windows focused malware dev:
 
 - **Fileless malware**, which operates solely in memory to bypass traditional AV/EDR.
 - **Polymorphic behavior**, making detection more difficult via mutation at runtime.
