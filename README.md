@@ -2,8 +2,7 @@
 # NSFW: Fileless Polymorphic Hybrid Malware & LOLBins Research
 
 **Repository:** `P1rat3R00t/NSFW`  
-**Purpose:** This project is dedicated to cybersecurity research on advanced fileless malware and Living-Off-the-Land Binaries (LOLBins), exploring their use in stealthy post-exploitation and ransomware simulations in a controlled lab environment.
-
+**Purpose:** This project is dedicated to cybersecurity research on fileless hybrid malware.
 ---
 
 ## 📸 Demonstration Snapshot
