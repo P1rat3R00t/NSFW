@@ -1,6 +1,0 @@
-
-openai
-cryptography
-azure-storage-blob
-cppimport
-pycryptodome
