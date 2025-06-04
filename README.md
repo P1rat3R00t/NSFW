@@ -9,7 +9,7 @@
 
 ### Executive Summary
 
-**Project NSFW** is a cutting-edge red/purple team research initiative that simulates a **fileless and polymorphic malware** framework, purpose-built for **Windows 11** environments. This project highlights the real-world feasibility of advanced cyberattacks that operate solely in memory and weaponize native system binaries (LOLBins), leaving minimal forensic traces. Drawing inspiration from NotPetya-class threats, NSFW demonstrates how adversaries can exploit Windows **print spooler services** for stealthy lateral movement and privilege escalation. The framework is designed not only to emulate sophisticated adversary actions, but also to support defender education in modern detection and mitigation strategies.
+**Project NSFW** is a red/purple team research initiative that simulates a **fileless malware** framework, purpose-built for **Windows 11** environments. This project is for educational and security research purposes only.
 
 ---
 
@@ -114,7 +114,7 @@ Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "ra
 
 ### ⚠️ Legal Disclaimer
 
-All code, content, and techniques provided in this project are strictly for **educational** and **authorized penetration testing** purposes only. Usage must be confined to **isolated lab environments** with **explicit written permission**. Unauthorized use outside these parameters may violate laws and regulations.
+All code, content, and techniques provided in this project are strictly for **educational** and **authorized penetration testing** purposes only. Usage must be confined to **isolated lab environments** and must comply with all relevant laws and regulations.
 
 ---
 
@@ -135,3 +135,4 @@ All code, content, and techniques provided in this project are strictly for **ed
 * [PrintSpoofer (Original)](https://github.com/itm4n/PrintSpoofer/tree/master)
 * [PrintSpoofer 2](https://github.com/dievus/printspoofer)
 * [HiveNightmare](https://github.com/GossiTheDog/HiveNightmare)
+
