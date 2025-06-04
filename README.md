@@ -74,7 +74,7 @@ Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "ra
 #### **Wiper Logic (Final Stage Payload)**
 
 * Emulates ransomware behavior but with a focus on **destruction rather than extortion**.
-* Employs **DiskCryptor-based encryption** and **Azure AI-powered polymorphic mutation** ("Copycat") to bypass anomaly detection.
+* Employs **DiskCryptor-based encryption**.
 * Can optionally print ransom notes via Windows printer services for realism.
 
 ---
@@ -94,7 +94,6 @@ Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "ra
 
 | Red Team (Adversary Simulation)         | Blue Team (Defender Insight)                 |
 | --------------------------------------- | -------------------------------------------- |
-| Simulate polymorphic worm-like malware  | Build detection for fileless attack chains   |
 | Demonstrate AV/EDR evasion with LOLBins | Tune threat hunting based on ATT&CK mapping  |
 | Trigger controlled system failure       | Apply Sigma/Sysmon for real-time monitoring  |
 
