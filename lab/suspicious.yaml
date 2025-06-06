@@ -1,0 +1,34 @@
+title: Suspicious Print Spooler and LOLBin Execution
+id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+description: Detects suspicious execution patterns of Print Spooler exploits and LOLBin abuse such as rundll32, certutil, and regsvr32 loading remote or non-standard payloads.
+author: AP3X / ChatGPT
+date: 2025-06-06
+status: experimental
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection_suspicious_process:
+    Image|endswith:
+      - '\rundll32.exe'
+      - '\regsvr32.exe'
+      - '\certutil.exe'
+      - '\mshta.exe'
+    CommandLine|contains|all:
+      - '\\'
+      - '.dll'
+  condition: selection_suspicious_process
+fields:
+  - Image
+  - CommandLine
+  - ParentImage
+  - ParentCommandLine
+falsepositives:
+  - Legitimate use of LOLBins in administrative scripts or maintenance
+level: high
+tags:
+  - attack.execution
+  - attack.t1218
+  - attack.t1190
+  - attack.t1071
+  - attack.lolbins
