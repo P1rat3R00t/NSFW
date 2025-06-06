@@ -151,10 +151,7 @@ After identifying an exposed printer web interface or open SMB share via Google 
 
 **Note:** This method bypasses traditional filters (e.g., `.exe` blocks) and leverages built-in binaries, making it highly evasive in legacy or lightly monitored environments.
 
-```
-```
 
-````markdown
 # 🧩 HiveNightmare / Print Spooler Exploits  
 **Objective:** Leverage known vulnerabilities in Windows Print Spooler and shadow volume access to escalate privileges and gain unauthorized file access.  
 
