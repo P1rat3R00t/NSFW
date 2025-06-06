@@ -104,10 +104,56 @@ After identifying an exposed printer or print server in Moberly (e.g., via Googl
 **Note:** LOLBins like `rundll32.exe`, `regsvr32.exe`, and `powershell.exe` should be monitored in high-trust environments like public school or city IT networks, especially when they interact with remote shares or untrusted memory regions.
 
 
+## Embed and Encoded Dropper:
+
+
+# Embed & Encode Dropper into Image (Fileless Staging)  
+**Context:** Covert delivery of payloads in environments like Moberly, MO public networks using **Windows-native tools** to avoid detection and bypass basic file filtering.
+
+This technique involves embedding a malicious `.7z` archive (containing a DLL or shellcode) inside an image file (e.g., `nsfw.jpg`) and then extracting it on the target system using **LOLBins** like `certutil.exe` and `copy.exe`. This is commonly used in phishing, local access staging, or in lateral movement operations across printer or SMB shares.
+
+---
+
+## 🔐 Dropper Embed Example
+
+1. **Create Combined Payload Locally**
+```bash
+copy /b nsfw.jpg + payload.7z nsfw.jpg
+````
+
+> Appends the `.7z` archive to the end of `nsfw.jpg` without altering image viewability.
+
+2. **Transfer to Target (e.g., exposed printer share or web panel)**
+
+---
+
+## 📤 Decode & Extract on Target Using LOLBins
+
+```cmd
+certutil -decode nsfw.jpg dropper.7z
 ```
 
+> Extracts the embedded `.7z` file from the image.
 
-## Embed and Encoded Dropper:
+```cmd
+7z x dropper.7z -oC:\Users\Public\
+```
+
+> (If 7-Zip is available or dropped via another LOLBin.)
+
+---
+
+## 🎯 Use Case in Moberly Print Scenario
+
+After identifying an exposed printer web interface or open SMB share via Google Dorking in **Moberly, Missouri**, a red teamer can drop `nsfw.jpg` to a public share or printer-accessible directory. A scheduled task, PowerShell execution, or manual `certutil` decoding on the target completes the payload delivery **without touching disk with a .exe** directly.
+
+---
+
+**Note:** This method bypasses traditional filters (e.g., `.exe` blocks) and leverages built-in binaries, making it highly evasive in legacy or lightly monitored environments.
+
+```
+```
+
 
 ## HiveNightmare / Print Spooler Exploits: 
 
