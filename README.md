@@ -53,62 +53,44 @@ foreach ($file in $files) {
 # Persistence (T1547.001)
 Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "ransomware" -Value "powershell -File C:\Temp\persist.ps1"
 ```
+## Google Dorks Recon:
+
+# 🖨️ Printer Reconnaissance via Google Dorking  
+**Target Location:** Moberly, Missouri  
+**Objective:** Identify publicly exposed printer services vulnerable to Windows Print Spooler exploits such as CVE-2021-1675 (PrintNightmare), CVE-2021-34527, and CVE-2022-21999. These exposures can assist in red team assessments, lateral movement staging, or vulnerability management audits.
+
+This technique uses crafted Google Dork queries to uncover unsecured or misconfigured web-based printer interfaces (e.g., HP JetDirect, RICOH Web Image Monitor, Canon UI), often found in public school systems, city infrastructure, or small business networks. These systems may have active Print Spooler services, which can be exploited for privilege escalation or remote code execution via known vulnerabilities.
 
 ---
 
-### 🧠 Core Concepts
+## 🔍 Google Dork Examples (Moberly-Focused)
 
-#### **Net Sharing (Initial Access & Wormability)**
 
-* Leverages Windows print and file sharing through `net.exe`, `net use`, and other LOLBins.
-* Automates exploitation of **PrintNightmare** and **HiveNightmare** vulnerabilities (`CVE-2021-34527`, `CVE-2021-36934`) for privilege escalation and worm-like propagation.
-* Supports both Metasploit-driven attacks (`exploit/windows/printnightmare`) and custom PowerShell/WMI remote execution.
-
-#### **Fileless Execution (Stealth & Evasion)**
-
-* Executes all payloads directly in memory using trusted system binaries:
-  * `rundll32.exe`, `regsvr32.exe`, `mshta.exe`, `cmdkey.exe`, `wmic.exe`
-* Minimizes disk writes to thwart forensic analysis and evade AV/EDR detection.
-* Delivers shellcode through phishing attachments such as `.jpg`, `.lnk`, or `.ps1` files.
-
-#### **Wiper Logic (Final Stage Payload)**
-
-* Emulates ransomware behavior but with a focus on **destruction rather than extortion**.
-* Employs **DiskCryptor-based encryption**.
-* Can optionally print ransom notes via Windows printer services for realism.
+    inurl:"/hp/device/this.LCDispatcher" "Moberly"
+    intitle:"Printer Status" "Moberly Public Schools"
+    intitle:"Web Image Monitor" inurl:"/wim" "Moberly"
+    inurl:"/printer/main.html" "City of Moberly"
+    intitle:"Web Jetadmin" "Moberly"
+    inurl:"/printers/" "Moberly"
+    inurl:"/PPS/public/" "Moberly"
+    intitle:"Konica Minolta" inurl:"/wcd/" "Moberly"
+    intitle:"PaperCut MF" "Moberly"
+    intitle:"Lexmark" inurl:"/printer/" "Moberly"
+    intitle:"Canon Remote UI" "Moberly"
+    intitle:"EpsonNet Config" "Moberly"
 
 ---
+## LOLbins Overveiw: 
 
-### 🧩 Attack Flow Overview
+## Embed and Encoded Dropper:
 
-1. **Initial Access** – Spear phishing with embedded `.jpg` or `.lnk` files.
-2. **Exploit** – Abuse of Print Spooler or Registry CVEs for escalation.
-3. **Lateral Movement** – Network spreading via `net use`, WMI, or PowerShell remoting.
-4. **Persistence** – Scheduled tasks or registry keys using LOLBins for stealth.
-5. **Payload Execution** – In-memory DLL or shellcode injection (Donut/sRDI).
-6. **Impact** – NTFS metadata destruction, ransom notes deployment, and system disruption.
+## HiveNightmare / Print Spooler Exploits: 
 
----
+## Reflective Dll Injection: 
 
-### 🎯 Objectives
+## Mitre Attack Summary: 
 
-| Red Team (Adversary Simulation)         | Blue Team (Defender Insight)                 |
-| --------------------------------------- | -------------------------------------------- |
-| Demonstrate AV/EDR evasion with LOLBins | Tune threat hunting based on ATT&CK mapping  |
-| Trigger controlled system failure       | Apply Sigma/Sysmon for real-time monitoring  |
-
----
-
-### 🔍 Detection & Mitigation Strategy
-
-* Aligned with MITRE ATT&CK tactics:
-  * `T1055` (Process Injection), `T1562` (Defense Evasion), `T1021` (Remote Services)
-* Recommended detection sources:
-  * **Sysmon**, **ELK**, **Splunk**, **Sigma Rules**
-* Monitoring tips:
-  * Watch for Print Spooler restarts, `rundll32`/`regsvr32` anomalies
-  * Track unexpected driver or service installations
-  * Monitor memory entropy and suspicious in-memory code execution
+## Detection & Mitigation Strategy
 
 ---
 
