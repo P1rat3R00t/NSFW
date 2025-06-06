@@ -1,0 +1,77 @@
+---
+name: Moberly_Print_Spooler_Recon_and_Response
+description: >
+  Automated workflow to identify exposed printer spooler services
+  in Moberly, Missouri, detect potential PrintNightmare/HiveNightmare
+  exploitation vectors, and apply mitigation.
+
+variables:
+  target_location: "Moberly, Missouri"
+  dork_queries:
+    - 'inurl:"/hp/device/this.LCDispatcher" "Moberly"'
+    - 'intitle:"Printer Status" "Moberly Public Schools"'
+    - 'intitle:"Web Image Monitor" inurl:"/wim" "Moberly"'
+    - 'inurl:"/printer/main.html" "City of Moberly"'
+    - 'intitle:"Web Jetadmin" "Moberly"'
+    - 'inurl:"/printers/" "Moberly"'
+  spooler_ports:
+    - 135
+    - 445
+  detection_tools:
+    - Sysmon
+    - SigmaRules
+  authorized_endpoints:
+    - '10.10.0.0/24' # adjust to your internal network
+
+tasks:
+
+  - name: Perform Google Dork Recon (manual step placeholder)
+    debug:
+      msg: >
+        Execute manual or API-based search for the following dork queries:
+        {{ dork_queries }}
+
+  - name: Scan discovered IPs for open spooler-related ports (135,445)
+    # This requires an inventory of IPs discovered from dorking
+    # Replace with your actual scanning module or script
+    # Example using nmap module in Ansible or equivalent
+    nmap_scan:
+      hosts: "{{ discovered_hosts }}"
+      ports: "{{ spooler_ports }}"
+      state: open
+    register: scan_results
+
+  - name: Filter hosts with open spooler services
+    set_fact:
+      vulnerable_hosts: "{{ scan_results.hosts | selectattr('ports', 'defined') | selectattr('ports', 'search', '135|445') | map(attribute='ip') | list }}"
+
+  - name: Deploy Sysmon and Sigma detection queries on authorized endpoints
+    when: vulnerable_hosts | length > 0
+    block:
+      - name: Push Sysmon config with print spooler and LOLBin monitoring
+        # Adjust to your configuration management tooling
+        ansible.builtin.template:
+          src: sysmon_printspooler_config.xml.j2
+          dest: C:/Windows/Sysmon/sysmon-config.xml
+        delegate_to: "{{ item }}"
+        loop: "{{ authorized_endpoints }}"
+
+      - name: Deploy Sigma rules to SIEM
+        # Placeholder: integrate with your SIEM solution's API
+        debug:
+          msg: "Deploy Sigma rules for Print Spooler exploit and LOLBin detection"
+
+  - name: Execute Mitigation - Disable Print Spooler on endpoints where not required
+    when: vulnerable_hosts | length > 0
+    win_shell: |
+      Stop-Service -Name Spooler -Force
+      Set-Service -Name Spooler -StartupType Disabled
+    delegate_to: "{{ item }}"
+    loop: "{{ authorized_endpoints }}"
+
+  - name: Patch management reminder
+    debug:
+      msg: >
+        Ensure all systems are patched for CVE-2021-34527, CVE-2021-1675,
+        and CVE-2022-21999 via Windows Update or WSUS.
+
