@@ -1,0 +1,24 @@
+<!-- Monitor rundll32, regsvr32, certutil, and mshta process creation with suspicious command lines -->
+<RuleGroup name="LOLBins Monitoring" groupRelation="or">
+  <ProcessCreate onmatch="include">
+    <Image condition="end with">rundll32.exe</Image>
+    <CommandLine condition="contains any">\*.dll \\</CommandLine>
+  </ProcessCreate>
+  <ProcessCreate onmatch="include">
+    <Image condition="end with">regsvr32.exe</Image>
+    <CommandLine condition="contains">\</CommandLine>
+  </ProcessCreate>
+  <ProcessCreate onmatch="include">
+    <Image condition="end with">certutil.exe</Image>
+    <CommandLine condition="contains">-decode</CommandLine>
+  </ProcessCreate>
+  <ProcessCreate onmatch="include">
+    <Image condition="end with">mshta.exe</Image>
+    <CommandLine condition="contains">http</CommandLine>
+  </ProcessCreate>
+</RuleGroup>
+
+<!-- Monitor Print Spooler service creation/modification -->
+<ServiceCreate onmatch="include">
+  <Image condition="contains">spoolsv.exe</Image>
+</ServiceCreate>
