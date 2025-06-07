@@ -1,1 +1,14 @@
 # Custom Caldera plugin config
+id: songbird
+name: Songbird
+description: Fileless malware plugin for educational and cybersecurity research.
+version: 1.0.0
+authors:
+  - P1rat3R00t
+enabled: true
+address: 0.0.0.0
+port: 8888
+access: 
+  - red
+  - blue
+# Optional: Add additional plugin-specific configuration below as needed
