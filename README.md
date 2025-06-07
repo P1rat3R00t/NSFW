@@ -81,7 +81,7 @@ Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "ra
 
 ## Reconnaissance with Google Dorks
 
-**Objective:** Identify publicly exposed printer services in Moberly, Missouri, potentially vulnerable to exploits like PrintNightmare.
+**Example Objective:** Identify publicly exposed printer services in Moberly, Missouri, potentially vulnerable to exploits like PrintNightmare.
 
 **Sample Google Dork Queries:**
 
