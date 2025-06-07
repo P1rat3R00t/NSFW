@@ -25,7 +25,7 @@
 
 ## Overview
 
-**NSFW** is an educational red/purple team research project that simulates a **fileless malware** attack framework on **Windows 11**. It enables the emulation of real-world adversary kill chains using [MITRE ATT&CK](https://attack.mitre.org/) techniques, with a focus on stealthy, fileless operations.
+**S0ngB1rd** is an educational red/purple team research project that simulates a **fileless malware** attack framework on **Windows 11**. It enables the emulation of real-world adversary kill chains using [MITRE ATT&CK](https://attack.mitre.org/) techniques, with a focus on stealthy, fileless operations.
 
 > **Warning:** For research and training in isolated labs only. **Do not use on production or unauthorized systems.**
 
